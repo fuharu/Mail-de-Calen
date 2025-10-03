@@ -1,0 +1,36 @@
+[33m6e9f315[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: reset: moving to origin/main
+[33mfa5050e[m HEAD@{1}: reset: moving to HEAD
+[33mfa5050e[m HEAD@{2}: commit: feat: フロントエンドとバックエンドを結合
+[33m7ef5ce1[m[33m ([m[1;31morigin/develop-backend[m[33m)[m HEAD@{3}: pull origin develop-backend: Fast-forward
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{4}: checkout: moving from develop-backend-clean to main
+[33m4ce92b4[m[33m ([m[1;31morigin/develop-backend-clean[m[33m, [m[1;32mdevelop-backend-clean[m[33m)[m HEAD@{5}: filter-branch: rewrite
+[33me638e4f[m HEAD@{6}: commit: update: .gitignoreの更新
+[33m6cf776a[m HEAD@{7}: commit: security: 機密情報ファイルをGit追跡から除外
+[33m57aa706[m HEAD@{8}: checkout: moving from develop-backend to develop-backend-clean
+[33m57aa706[m HEAD@{9}: commit: feat: フロントエンドとバックエンドを結合
+[33mc829e86[m HEAD@{10}: reset: moving to HEAD^
+[33m1be1d6a[m HEAD@{11}: commit: feat: フロントエンドとバックエンドを結合
+[33mc829e86[m HEAD@{12}: reset: moving to HEAD^
+[33m5711b4f[m HEAD@{13}: commit: feat: フロントエンドとバックエンドを結合
+[33mc829e86[m HEAD@{14}: commit: feat: フロントエンドとバックエンドの統合
+[33m2c81c0b[m HEAD@{15}: checkout: moving from develop-backend to develop-backend
+[33m2c81c0b[m HEAD@{16}: reset: moving to HEAD
+[33m2c81c0b[m HEAD@{17}: checkout: moving from develop-frontend to develop-backend
+[33m821da10[m HEAD@{18}: commit: feat: Next.jsフロントエンドとバックエンドAPI連携実装
+[33m910cda0[m[33m ([m[1;31morigin/develop/frontend[m[33m)[m HEAD@{19}: checkout: moving from develop-backend to develop-frontend
+[33m2c81c0b[m HEAD@{20}: commit: docs: README更新
+[33m739a501[m HEAD@{21}: commit: feat: バックエンドAPI実装
+[33mcfcda38[m HEAD@{22}: checkout: moving from develop-backend to develop-backend
+[33mcfcda38[m HEAD@{23}: checkout: moving from develop-frontend to develop-backend
+[33m910cda0[m[33m ([m[1;31morigin/develop/frontend[m[33m)[m HEAD@{24}: checkout: moving from develop-backend to develop-frontend
+[33mcfcda38[m HEAD@{25}: reset: moving to HEAD
+[33mcfcda38[m HEAD@{26}: commit: feat: バックエンド機能の実装とPostman設定
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{27}: checkout: moving from main to develop-backend
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{28}: checkout: moving from develop-frontend to main
+[33m910cda0[m[33m ([m[1;31morigin/develop/frontend[m[33m)[m HEAD@{29}: checkout: moving from main to develop-frontend
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{30}: reset: moving to HEAD
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{31}: checkout: moving from feature/backend to main
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{32}: reset: moving to HEAD
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{33}: checkout: moving from develop to feature/backend
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{34}: checkout: moving from main to develop
+[33m2ca917a[m[33m ([m[1;32mfeature/backend[m[33m, [m[1;32mdevelop[m[33m)[m HEAD@{35}: commit (initial): Initial commit: Mail de Calen - AI-powered email assistant with Gmail and Calendar integration

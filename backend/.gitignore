@@ -1,0 +1,9 @@
+.env
+.env.local
+.credentials/
+.tokens/
+*.db
+*.sqlite
+*.sqlite3
+.credentials.json
+__pycache__/
