@@ -55,7 +55,7 @@ export const SelectedDayContent = ({
 
     if (!selectedDate) {
         // 日付が選択されていない場合の表示（コメントアウトを解除してもOK）
-        return <div>日付を選択してください</div>;
+        return null;
     }
 
     const selectedDateString = selectedDate?.toDateString();
