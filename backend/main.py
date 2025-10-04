@@ -13,7 +13,7 @@ from routers import auth, email, calendar, todos, candidates, oauth, polling
 app = FastAPI(
     title="Mail de Calen API",
     description="メール解析とカレンダー管理API",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # CORS設定
@@ -56,14 +56,18 @@ app.include_router(candidates.router, prefix="/api/candidates", tags=["候補"])
 app.include_router(oauth.router, prefix="/api/oauth", tags=["OAuth"])
 app.include_router(polling.router, prefix="/api/polling", tags=["ポーリング"])
 
+
 @app.get("/")
 async def root():
     return {"message": "Mail de Calen API is running"}
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

@@ -1,0 +1,26 @@
+version: "3"
+services:
+    api:
+        container_name: Mail-de-Calen-api
+        build: .
+        depends_on:
+            - db
+        environment:
+            DATABASE_URL: ${DATABASE_URL}
+        ports:
+            - "8000:8000"
+        restart: unless-stopped
+        volumes:
+            - ./backend:/code/backend
+    db:
+        container_name: Mail-de-Calen-db
+        image: postgres:16-alpine
+        environment:
+            POSTGRES_DB: mail_de_calen
+            POSTGRES_USER: mail_de_calen
+            POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+        restart: unless-stopped
+        volumes:
+            - db_data:/var/lib/postgresql/data
+volumes:
+    db_data:
