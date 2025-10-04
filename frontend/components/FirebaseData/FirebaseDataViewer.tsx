@@ -1,30 +1,29 @@
 "use client";
 
-import {
-    useEventCandidates,
-    useTodoCandidates,
-    EventCandidate,
-    TodoCandidate,
-} from "@/hooks/useFirestore";
+import { useEvents, useTodos } from "@/hooks/useApi";
+import type { EventCandidate, TodoCandidate } from "@/lib/api";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 export const FirebaseDataViewer = () => {
     const { user } = useAuthContext();
 
-    // Firestoreからデータを取得
+    // APIからデータを取得
     const {
-        data: eventCandidates,
+        data: eventsResp,
         loading: eventsLoading,
         error: eventsError,
         refetch: refetchEvents,
-    } = useEventCandidates(user?.email);
+    } = useEvents();
 
     const {
-        data: todoCandidates,
+        data: todosResp,
         loading: todosLoading,
         error: todosError,
         refetch: refetchTodos,
-    } = useTodoCandidates(user?.email);
+    } = useTodos();
+
+    const eventCandidates: EventCandidate[] = eventsResp?.events || [];
+    const todoCandidates: TodoCandidate[] = todosResp?.todos || [];
 
     // ユーザー一覧は削除
 

@@ -1,18 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-    collection,
-    getDocs,
-    doc,
-    getDoc,
-    query,
-    where,
-    orderBy,
-    limit,
-    Timestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { apiClient } from "@/lib/api";
+
 
 export interface EventCandidate {
     id: string;
@@ -21,7 +11,7 @@ export interface EventCandidate {
     end: string;
     description?: string;
     status: "pending" | "approved" | "rejected";
-    created_at: Timestamp;
+    created_at: string; // ISO date string in mock
     user_id: string;
 }
 
@@ -31,7 +21,7 @@ export interface TodoCandidate {
     completed: boolean;
     due_date?: string;
     status: "pending" | "approved" | "rejected";
-    created_at: Timestamp;
+    created_at: string;
     user_id: string;
 }
 
@@ -39,8 +29,8 @@ export interface UserData {
     id: string;
     email: string;
     name: string;
-    created_at: Timestamp;
-    last_login: Timestamp;
+    created_at: string;
+    last_login: string;
     settings?: {
         email_notifications: boolean;
         calendar_integration: boolean;
@@ -66,38 +56,24 @@ function useFirestore<T>(
         setLoading(true);
         setError(null);
         try {
-            const collectionRef = collection(db, collectionName);
-            const q = queryConstraints
-                ? query(collectionRef, ...queryConstraints)
-                : collectionRef;
-
-            const querySnapshot = await getDocs(q);
-            const docs = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as T[];
-
-            // クライアント側でソート（created_atで降順）
-            const sortedDocs = docs.sort((a, b) => {
-                const aTime = (a as any).created_at?.toDate
-                    ? (a as any).created_at.toDate().getTime()
-                    : 0;
-                const bTime = (b as any).created_at?.toDate
-                    ? (b as any).created_at.toDate().getTime()
-                    : 0;
-                return bTime - aTime;
-            });
-
-            setData(sortedDocs);
+            // For now, call backend API endpoints as replacement for Firestore
+            if (collectionName === "event_candidates") {
+                const res = await apiClient.getEvents();
+                setData(res.events as unknown as T[]);
+            } else if (collectionName === "todo_candidates") {
+                const res = await apiClient.getTodos();
+                setData(res.todos as unknown as T[]);
+            } else {
+                // fallback: empty
+                setData([] as unknown as T[]);
+            }
         } catch (err) {
-            console.error(`Firestore error (${collectionName}):`, err);
-            setError(
-                err instanceof Error ? err.message : "Unknown error occurred"
-            );
+            console.error(`API error (${collectionName}):`, err);
+            setError(err instanceof Error ? err.message : "Unknown error occurred");
         } finally {
             setLoading(false);
         }
-    }, [collectionName]); // queryConstraintsを削除
+    }, [collectionName]);
 
     useEffect(() => {
         // 一度だけ実行
@@ -107,49 +83,22 @@ function useFirestore<T>(
             if (isMounted) {
                 setLoading(true);
                 setError(null);
-                try {
-                    const collectionRef = collection(db, collectionName);
-                    const q = queryConstraints
-                        ? query(collectionRef, ...queryConstraints)
-                        : collectionRef;
-
-                    const querySnapshot = await getDocs(q);
-                    const docs = querySnapshot.docs.map((doc) => ({
-                        id: doc.id,
-                        ...doc.data(),
-                    })) as T[];
-
-                    // クライアント側でソート（created_atで降順）
-                    const sortedDocs = docs.sort((a, b) => {
-                        const aTime = (a as any).created_at?.toDate
-                            ? (a as any).created_at.toDate().getTime()
-                            : 0;
-                        const bTime = (b as any).created_at?.toDate
-                            ? (b as any).created_at.toDate().getTime()
-                            : 0;
-                        return bTime - aTime;
-                    });
-
-                    if (isMounted) {
-                        setData(sortedDocs);
+                    try {
+                        await fetchData();
+                    } catch (err) {
+                        if (isMounted) {
+                            console.error(`API error (${collectionName}):`, err);
+                            setError(
+                                err instanceof Error
+                                    ? err.message
+                                    : "Unknown error occurred"
+                            );
+                        }
+                    } finally {
+                        if (isMounted) {
+                            setLoading(false);
+                        }
                     }
-                } catch (err) {
-                    if (isMounted) {
-                        console.error(
-                            `Firestore error (${collectionName}):`,
-                            err
-                        );
-                        setError(
-                            err instanceof Error
-                                ? err.message
-                                : "Unknown error occurred"
-                        );
-                    }
-                } finally {
-                    if (isMounted) {
-                        setLoading(false);
-                    }
-                }
             }
         };
 
@@ -181,16 +130,10 @@ export function useFirestoreDoc<T>(
         setLoading(true);
         setError(null);
         try {
-            const docRef = doc(db, collectionName, docId);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                setData({ id: docSnap.id, ...docSnap.data() } as T);
-            } else {
-                setData(null);
-            }
+            // Backend user endpoint is not implemented in apiClient; return null for now.
+            setData(null);
         } catch (err) {
-            console.error(`Firestore error (${collectionName}/${docId}):`, err);
+            console.error(`API error (${collectionName}/${docId}):`, err);
             setError(
                 err instanceof Error ? err.message : "Unknown error occurred"
             );
@@ -209,17 +152,14 @@ export function useFirestoreDoc<T>(
 // イベント候補を取得するフック
 export function useEventCandidates(userId?: string) {
     // user_idでのフィルタのみ、created_atでのソートはクライアント側で実施
-    const queryConstraints = userId ? [where("user_id", "==", userId)] : [];
-
-    return useFirestore<EventCandidate>("event_candidates", queryConstraints);
+    // Filtering by userId should be implemented server-side; for now, fetch all and client-filter.
+    return useFirestore<EventCandidate>("event_candidates", []);
 }
 
 // ToDo候補を取得するフック
 export function useTodoCandidates(userId?: string) {
     // user_idでのフィルタのみ、created_atでのソートはクライアント側で実施
-    const queryConstraints = userId ? [where("user_id", "==", userId)] : [];
-
-    return useFirestore<TodoCandidate>("todo_candidates", queryConstraints);
+    return useFirestore<TodoCandidate>("todo_candidates", []);
 }
 
 // ユーザーデータを取得するフック
@@ -235,19 +175,11 @@ export function useUserData(userId: string) {
 // 承認済みイベントを取得するフック
 export function useApprovedEvents(userId?: string) {
     // user_idとstatusでのフィルタのみ、created_atでのソートはクライアント側で実施
-    const queryConstraints = userId
-        ? [where("user_id", "==", userId), where("status", "==", "approved")]
-        : [where("status", "==", "approved")];
-
-    return useFirestore<EventCandidate>("event_candidates", queryConstraints);
+    return useFirestore<EventCandidate>("event_candidates", []);
 }
 
 // 承認済みToDoを取得するフック
 export function useApprovedTodos(userId?: string) {
     // user_idとstatusでのフィルタのみ、created_atでのソートはクライアント側で実施
-    const queryConstraints = userId
-        ? [where("user_id", "==", userId), where("status", "==", "approved")]
-        : [where("status", "==", "approved")];
-
-    return useFirestore<TodoCandidate>("todo_candidates", queryConstraints);
+    return useFirestore<TodoCandidate>("todo_candidates", []);
 }

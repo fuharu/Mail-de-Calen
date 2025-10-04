@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useEvents } from "@/hooks/useApi";
+import { useEvents, useTodos } from "@/hooks/useApi";
 
 interface AllCalendarProps {
     onDateSelect?: (date: Date | null) => void;
@@ -9,9 +9,22 @@ interface AllCalendarProps {
 
 export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
     const { data: eventsData, loading, error, refetch } = useEvents();
+    const { data: todosData } = useTodos();
     const events = eventsData?.events || [];
+    const todos = todosData?.todos || [];
 
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    // デバッグ用ログ
+    console.log('📅 Calendar Debug:', {
+        events: events,
+        todos: todos,
+        eventsCount: events.length,
+        todosCount: todos.length,
+        currentDate: currentDate,
+        currentMonth: currentDate.getMonth() + 1,
+        currentYear: currentDate.getFullYear()
+    });
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const today = new Date();
@@ -71,6 +84,9 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
     interface CalendarDay {
         date: Date;
         events: any[];
+        todos: any[];
+        eventCount: number;
+        todoCount: number;
         isCurrentMonth: boolean;
         isToday: boolean;
         isSelected: boolean;
@@ -82,14 +98,37 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
     while (currentDateForLoop <= endDate) {
         const dayEvents = events.filter((event) => {
             const eventDate = new Date(event.start);
-            return (
-                eventDate.toDateString() === currentDateForLoop.toDateString()
-            );
+            const isMatch = eventDate.toDateString() === currentDateForLoop.toDateString();
+            if (isMatch) {
+                console.log('📅 Event match found:', {
+                    event: event.title,
+                    eventDate: eventDate.toDateString(),
+                    calendarDate: currentDateForLoop.toDateString()
+                });
+            }
+            return isMatch;
+        });
+
+        const dayTodos = todos.filter((todo) => {
+            if (!todo.due_date) return false;
+            const dueDate = new Date(todo.due_date);
+            const isMatch = dueDate.toDateString() === currentDateForLoop.toDateString();
+            if (isMatch) {
+                console.log('📅 Todo match found:', {
+                    todo: todo.title,
+                    dueDate: dueDate.toDateString(),
+                    calendarDate: currentDateForLoop.toDateString()
+                });
+            }
+            return isMatch;
         });
 
         calendarDays.push({
             date: new Date(currentDateForLoop),
             events: dayEvents,
+            todos: dayTodos,
+            eventCount: dayEvents.length,
+            todoCount: dayTodos.length,
             isCurrentMonth: currentDateForLoop.getMonth() === month,
             isToday: currentDateForLoop.toDateString() === today.toDateString(),
             isSelected: selectedDate
@@ -196,13 +235,16 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
                                         return (
                                             <td
                                                 key={dayIndex}
-                                                className="h-12 w-12"
+                                                className="h-16 w-12"
                                             ></td>
                                         );
 
                                     const {
                                         date,
                                         events,
+                                        todos,
+                                        eventCount,
+                                        todoCount,
                                         isCurrentMonth,
                                         isToday,
                                         isSelected,
@@ -211,7 +253,7 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
                                     return (
                                         <td
                                             key={dayIndex}
-                                            className={`h-12 w-12 border border-gray-200 cursor-pointer ${
+                                            className={`h-16 w-12 border border-gray-200 cursor-pointer ${
                                                 !isCurrentMonth
                                                     ? "text-gray-400"
                                                     : isSelected
@@ -228,10 +270,31 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
                                                 handleDateClick(date.getDate())
                                             }
                                         >
-                                            {date.getDate()}
-                                            {events.length > 0 && (
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full mx-auto mt-1"></div>
-                                            )}
+                                            <div className="flex flex-col items-center justify-center h-full">
+                                                <div className="text-sm font-medium">
+                                                    {date.getDate()}
+                                                </div>
+                                                {(eventCount > 0 || todoCount > 0) && (
+                                                    <div className="flex gap-1 mt-1">
+                                                        {eventCount > 0 && (
+                                                            <div className="flex items-center gap-1">
+                                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                                                <span className="text-xs text-blue-600 font-medium">
+                                                                    {eventCount}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {todoCount > 0 && (
+                                                            <div className="flex items-center gap-1">
+                                                                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                                                                <span className="text-xs text-orange-600 font-medium">
+                                                                    {todoCount}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                     );
                                 })}
@@ -241,8 +304,20 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
                 </tbody>
             </table>
 
-            <div className="text-center text-gray-500 mt-4">
-                日付を押すと詳細が表示されます
+            <div className="mt-4 space-y-2">
+                <div className="text-center text-gray-500 text-sm">
+                    日付を押すと詳細が表示されます
+                </div>
+                <div className="flex justify-center items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="text-blue-600">予定</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-orange-600">タスク</span>
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+import { useEvents, useTodos } from "@/hooks/useApi";
 import { useEmails } from "@/hooks/useApi";
 
 export default function InboxPage() {
@@ -13,18 +14,21 @@ export default function InboxPage() {
 
     // Firestoreからデータを取得
     const {
-        data: eventCandidates,
+        data: eventsResp,
         loading: eventsLoading,
         error: eventsError,
         refetch: refetchEvents,
-    } = useEventCandidates(user?.email);
+    } = useEvents();
 
     const {
-        data: todoCandidates,
+        data: todosResp,
         loading: todosLoading,
         error: todosError,
         refetch: refetchTodos,
-    } = useTodoCandidates(user?.email);
+    } = useTodos();
+
+    const eventCandidates = eventsResp?.events || [];
+    const todoCandidates = todosResp?.todos || [];
 
     // APIからメールデータを取得
     const {
@@ -112,9 +116,44 @@ export default function InboxPage() {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Inbox</h1>
+        <div className="pb-20 bg-gray-50 min-h-screen">
+            {/* ヘッダー */}
+            <div className="navbar bg-base-100 shadow-sm lg:hidden">
+                <div className="flex-1">
+                    <div className="text-xl font-bold">
+                        <Image
+                            src="/logo_main.png"
+                            alt="Mail de Calen"
+                            width={150}
+                            height={32}
+                            className="inline-block mr-2"
+                            style={{ width: "auto", height: "auto" }}
+                            priority
+                        />
+                    </div>
+                </div>
+                <div className="flex-none">
+                    <button className="btn btn-square btn-ghost">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            className="inline-block h-5 w-5 stroke-current"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div className="p-6">
+                <div className="max-w-6xl mx-auto">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Inbox</h1>
 
                 {/* タブナビゲーション */}
                 <div className="tabs tabs-bordered mb-6">
@@ -442,6 +481,7 @@ export default function InboxPage() {
                         )}
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );
