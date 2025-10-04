@@ -1,11 +1,22 @@
 'use client';
 
-import { useEvents } from "@/hooks/useApi";
+import { useApprovedEvents } from "@/hooks/useFirestore";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useSettings } from "@/hooks/useSettings";
 
 export const RecentlyCalendarList = () => {
-    const { data: eventsData, loading, error, refetch } = useEvents();
+    const { user } = useAuthContext();
+    const { settings } = useSettings();
+    const { data: eventsData, loading, error, refetch } = useApprovedEvents(user?.uid);
     
-    const events = eventsData?.events || [];
+    // 設定された日数以内のイベントのみをフィルタリング
+    const events = eventsData?.filter(event => {
+        const eventDate = new Date(event.start);
+        const now = new Date();
+        const diffTime = eventDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 && diffDays <= settings.recentDays;
+    }) || [];
 
     if (loading) {
         return (

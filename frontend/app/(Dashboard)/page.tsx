@@ -7,13 +7,16 @@ import { RecentlyCalendarList } from "@/components/RecentlyCalendarList/Recently
 import { AllCalendar } from "@/components/AllCalendar/AllCalendar";
 import { ToDo } from "@/components/ToDO/ToDo";
 import { UserProfile } from "@/components/Auth/UserProfile";
+import { SelectedDayContent } from "@/components/SelectedDay/SelectedDayContent";
 import { useHealthCheck } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useState } from "react";
 
 export default function Home() {
     const { user, loading: authLoading } = useAuthContext();
     const { data: healthData, loading: healthLoading, error: healthError } = useHealthCheck();
     const router = useRouter();
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -92,7 +95,11 @@ export default function Home() {
                     <div className="text-xs text-green-500">✓ API接続成功</div>
                 )}
             </div>
-            <AllCalendar />
+            <AllCalendar onDateSelect={setSelectedDate} />
+            
+            {/* 選択された日のタスクと予定 */}
+            <SelectedDayContent selectedDate={selectedDate} />
+            
             <div className="lg:grid lg:grid-cols-2">
                 <ToDo />
                 <RecentlyCalendarList />

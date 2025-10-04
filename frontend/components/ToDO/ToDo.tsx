@@ -1,11 +1,23 @@
 'use client';
 
-import { useTodos } from "@/hooks/useApi";
+import { useApprovedTodos } from "@/hooks/useFirestore";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useSettings } from "@/hooks/useSettings";
 
 export const ToDo = () => {
-    const { data: todosData, loading, error, refetch } = useTodos();
+    const { user } = useAuthContext();
+    const { settings } = useSettings();
+    const { data: todosData, loading, error, refetch } = useApprovedTodos(user?.uid);
     
-    const todos = todosData?.todos || [];
+    // 設定された日数以内のタスクのみをフィルタリング
+    const todos = todosData?.filter(todo => {
+        if (!todo.due_date) return true; // 期限がないタスクは常に表示
+        const dueDate = new Date(todo.due_date);
+        const now = new Date();
+        const diffTime = dueDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 && diffDays <= settings.recentDays;
+    }) || [];
 
     if (loading) {
         return (
