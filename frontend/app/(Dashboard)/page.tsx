@@ -87,7 +87,10 @@ export default function Home() {
             <AllCalendar onDateSelect={setSelectedDate} />
 
             {/* 選択された日のタスクと予定 */}
-            <SelectedDayContent selectedDate={selectedDate} />
+            <SelectedDayContent 
+                selectedDate={selectedDate} 
+                onClose={() => setSelectedDate(null)}
+            />
 
             <div className="lg:grid lg:grid-cols-2">
                 <ToDo />

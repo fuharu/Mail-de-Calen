@@ -14,19 +14,34 @@ class Todo(BaseModel):
 @router.get("/")
 async def get_todos():
     """ToDoリストを取得"""
-    # モックデータ
+    # モックデータ（現在の日付に合わせて更新）
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    
     mock_todos = [
         {
             "id": "todo_1",
             "title": "レポート作成",
             "completed": False,
-            "due_date": "2024-10-05T17:00:00Z"
+            "due_date": (today + timedelta(days=1)).strftime("%Y-%m-%dT17:00:00Z")
         },
         {
             "id": "todo_2",
             "title": "資料レビュー",
             "completed": True,
-            "due_date": "2024-10-04T12:00:00Z"
+            "due_date": (today + timedelta(days=2)).strftime("%Y-%m-%dT12:00:00Z")
+        },
+        {
+            "id": "todo_3",
+            "title": "プレゼン準備",
+            "completed": False,
+            "due_date": (today + timedelta(days=4)).strftime("%Y-%m-%dT15:00:00Z")
+        },
+        {
+            "id": "todo_4",
+            "title": "会議資料作成",
+            "completed": False,
+            "due_date": (today + timedelta(days=5)).strftime("%Y-%m-%dT10:00:00Z")
         }
     ]
     return {"todos": mock_todos}

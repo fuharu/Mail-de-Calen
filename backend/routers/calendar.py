@@ -15,21 +15,31 @@ class CalendarEvent(BaseModel):
 @router.get("/events")
 async def get_events():
     """カレンダーイベントを取得"""
-    # モックデータ
+    # モックデータ（現在の日付に合わせて更新）
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    
     mock_events = [
         {
             "id": "event_1",
             "title": "会議",
-            "start": "2024-10-03T10:00:00Z",
-            "end": "2024-10-03T11:00:00Z",
+            "start": (today + timedelta(days=1)).strftime("%Y-%m-%dT10:00:00Z"),
+            "end": (today + timedelta(days=1)).strftime("%Y-%m-%dT11:00:00Z"),
             "description": "チーム会議"
         },
         {
             "id": "event_2",
             "title": "プロジェクトレビュー", 
-            "start": "2024-10-03T14:00:00Z",
-            "end": "2024-10-03T15:00:00Z",
+            "start": (today + timedelta(days=2)).strftime("%Y-%m-%dT14:00:00Z"),
+            "end": (today + timedelta(days=2)).strftime("%Y-%m-%dT15:00:00Z"),
             "description": "プロジェクト進捗のレビュー"
+        },
+        {
+            "id": "event_3",
+            "title": "打ち合わせ",
+            "start": (today + timedelta(days=3)).strftime("%Y-%m-%dT09:00:00Z"),
+            "end": (today + timedelta(days=3)).strftime("%Y-%m-%dT10:00:00Z"),
+            "description": "クライアントとの打ち合わせ"
         }
     ]
     return {"events": mock_events}
