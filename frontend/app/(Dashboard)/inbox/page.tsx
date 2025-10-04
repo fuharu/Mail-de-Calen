@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+import { useEvents, useTodos } from "@/hooks/useApi";
 import { useEmails } from "@/hooks/useApi";
 
 export default function InboxPage() {
@@ -14,18 +14,21 @@ export default function InboxPage() {
 
     // Firestoreからデータを取得
     const {
-        data: eventCandidates,
+        data: eventsResp,
         loading: eventsLoading,
         error: eventsError,
         refetch: refetchEvents,
-    } = useEventCandidates(user?.email);
+    } = useEvents();
 
     const {
-        data: todoCandidates,
+        data: todosResp,
         loading: todosLoading,
         error: todosError,
         refetch: refetchTodos,
-    } = useTodoCandidates(user?.email);
+    } = useTodos();
+
+    const eventCandidates = eventsResp?.events || [];
+    const todoCandidates = todosResp?.todos || [];
 
     // APIからメールデータを取得
     const {
