@@ -57,7 +57,8 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="pb-20 bg-gray-50 min-h-screen">
+            {/* ヘッダー */}
             <div className="navbar bg-base-100 shadow-sm lg:hidden">
                 <div className="flex-1">
                     <div className="text-xl font-bold">
@@ -72,7 +73,7 @@ export default function SettingsPage() {
                         />
                     </div>
                 </div>
-                <div className="flex-none p-6">
+                <div className="flex-none">
                     <button className="btn btn-square btn-ghost">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -80,18 +81,19 @@ export default function SettingsPage() {
                             viewBox="0 0 24 24"
                             className="inline-block h-5 w-5 stroke-current"
                         >
-                            {" "}
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth="2"
                                 d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
-                            ></path>{" "}
+                            ></path>
                         </svg>
                     </button>
                 </div>
             </div>
-            <div className="max-w-4xl mx-auto">
+
+            <div className="p-6">
+                <div className="max-w-4xl mx-auto">
                 <h1 className="text-2xl font-bold text-gray-800 mb-6">設定</h1>
 
                 {/* キーワード設定 */}
@@ -302,6 +304,7 @@ export default function SettingsPage() {
                     >
                         設定を保存
                     </button>
+                </div>
                 </div>
             </div>
         </div>

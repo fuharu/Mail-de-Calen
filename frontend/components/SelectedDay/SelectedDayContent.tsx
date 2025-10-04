@@ -2,19 +2,49 @@
 
 import { useEvents, useTodos } from "@/hooks/useApi";
 // 削除: import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+import { useEffect } from "react";
 
 interface SelectedDayContentProps {
     selectedDate: Date | null;
+    onClose?: () => void;
 }
 
 export const SelectedDayContent = ({
     selectedDate,
+    onClose,
 }: SelectedDayContentProps) => {
     const {
         data: eventsData,
         loading: eventsLoading,
         error: eventsError,
     } = useEvents();
+
+    // ESCキーでモーダルを閉じる
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && selectedDate) {
+                onClose?.();
+            }
+        };
+
+        if (selectedDate) {
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [selectedDate, onClose]);
+
+    // モーダルが閉じられたときにチェックボックスを無効にする
+    useEffect(() => {
+        if (!selectedDate) {
+            const modalCheckbox = document.getElementById('my_modal_7') as HTMLInputElement;
+            if (modalCheckbox) {
+                modalCheckbox.checked = false;
+            }
+        }
+    }, [selectedDate]);
     const {
         data: todosData,
         loading: todosLoading,
@@ -138,12 +168,20 @@ export const SelectedDayContent = ({
                         )}
                     </div>
                     <div className="modal-action">
-                        <label htmlFor="my_modal_7" className="btn">
+                        <label 
+                            htmlFor="my_modal_7" 
+                            className="btn"
+                            onClick={() => onClose?.()}
+                        >
                             閉じる
                         </label>
                     </div>
                 </div>
-                <label className="modal-backdrop" htmlFor="my_modal_7">
+                <label
+                    className="modal-backdrop"
+                    htmlFor="my_modal_7"
+                    onClick={() => onClose?.()}
+                >
                     Close
                 </label>
             </div>
