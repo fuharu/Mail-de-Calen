@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface Settings {
     keywords: string[];
@@ -15,12 +15,12 @@ interface Settings {
 }
 
 const defaultSettings: Settings = {
-    keywords: ['会議', 'ミーティング', '打ち合わせ', '予定', 'イベント'],
+    keywords: ["会議", "ミーティング", "打ち合わせ", "予定", "イベント"],
     emailIntegration: true,
     calendarIntegration: true,
     notificationEnabled: true,
     autoSave: true,
-    recentDays: 7
+    recentDays: 7,
 };
 
 export function useSettings() {
@@ -39,10 +39,10 @@ export function useSettings() {
         try {
             setLoading(true);
             setError(null);
-            
-            const settingsRef = doc(db, 'user_settings', user.uid);
+
+            const settingsRef = doc(db, "user_settings", user.uid);
             const settingsSnap = await getDoc(settingsRef);
-            
+
             if (settingsSnap.exists()) {
                 const userSettings = settingsSnap.data() as Settings;
                 setSettings({ ...defaultSettings, ...userSettings });
@@ -52,8 +52,12 @@ export function useSettings() {
                 setSettings(defaultSettings);
             }
         } catch (err) {
-            console.error('設定の読み込みに失敗しました:', err);
-            setError(err instanceof Error ? err.message : '設定の読み込みに失敗しました');
+            console.error("設定の読み込みに失敗しました:", err);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "設定の読み込みに失敗しました"
+            );
             setSettings(defaultSettings);
         } finally {
             setLoading(false);
@@ -65,13 +69,15 @@ export function useSettings() {
         if (!user) return;
 
         try {
-            const settingsRef = doc(db, 'user_settings', user.uid);
+            const settingsRef = doc(db, "user_settings", user.uid);
             await setDoc(settingsRef, newSettings, { merge: true });
             setSettings(newSettings);
             setError(null);
         } catch (err) {
-            console.error('設定の保存に失敗しました:', err);
-            setError(err instanceof Error ? err.message : '設定の保存に失敗しました');
+            console.error("設定の保存に失敗しました:", err);
+            setError(
+                err instanceof Error ? err.message : "設定の保存に失敗しました"
+            );
         }
     };
 
@@ -90,6 +96,6 @@ export function useSettings() {
         loading,
         error,
         updateSettings,
-        refetch: loadSettings
+        refetch: loadSettings,
     };
 }

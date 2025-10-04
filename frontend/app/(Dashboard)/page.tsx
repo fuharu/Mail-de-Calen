@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,13 +14,12 @@ import { useState } from "react";
 
 export default function Home() {
     const { user, loading: authLoading } = useAuthContext();
-    const { data: healthData, loading: healthLoading, error: healthError } = useHealthCheck();
     const router = useRouter();
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     useEffect(() => {
         if (!authLoading && !user) {
-            router.push('/login');
+            router.push("/login");
         }
     }, [user, authLoading, router]);
 
@@ -40,7 +39,9 @@ export default function Home() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <span className="loading loading-spinner loading-lg"></span>
-                    <div className="text-lg mt-4">ログインページにリダイレクト中...</div>
+                    <div className="text-lg mt-4">
+                        ログインページにリダイレクト中...
+                    </div>
                 </div>
             </div>
         );
@@ -82,24 +83,12 @@ export default function Home() {
             </div>
 
             <UserProfile />
-            
-            {/* API接続ステータス */}
-            <div className="px-5 pb-2">
-                {healthLoading && (
-                    <div className="text-xs text-blue-500">API接続中...</div>
-                )}
-                {healthError && (
-                    <div className="text-xs text-red-500">API接続エラー: {healthError}</div>
-                )}
-                {healthData && (
-                    <div className="text-xs text-green-500">✓ API接続成功</div>
-                )}
-            </div>
+
             <AllCalendar onDateSelect={setSelectedDate} />
-            
+
             {/* 選択された日のタスクと予定 */}
             <SelectedDayContent selectedDate={selectedDate} />
-            
+
             <div className="lg:grid lg:grid-cols-2">
                 <ToDo />
                 <RecentlyCalendarList />

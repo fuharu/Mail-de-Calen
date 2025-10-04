@@ -8,12 +8,19 @@ interface NavigationProps {
     children: React.ReactNode;
 }
 
+import { useAuthContext } from "@/contexts/AuthContext";
+
 export const Navigation: React.FC<NavigationProps> = ({ children }) => {
     const pathname = usePathname().split("/")[1] || "dashboard";
     const [activeLink, setActiveLink] = useState<string>("dashboard");
     useEffect(() => {
         setActiveLink(pathname);
     }, [pathname]);
+    const { logout } = useAuthContext();
+
+    const handleLogout = async () => {
+        await logout();
+    };
     return (
         <div>
             <div className="drawer lg:drawer-open">
@@ -154,7 +161,9 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
                                     <a>プロフィール</a>
                                 </li>
                                 <li>
-                                    <a>ログアウト</a>
+                                    <button onClick={handleLogout}>
+                                        ログアウト
+                                    </button>
                                 </li>
                             </ul>
                         </li>
