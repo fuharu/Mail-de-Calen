@@ -73,13 +73,13 @@ export const Navigation: React.FC<NavigationProps> = ({ children }) => {
                             </Link>
                             <ul className="ml-4">
                                 <li>
-                                    <Link href="/calendar">カレンダー</Link>
+                                    <div>カレンダー</div>
                                 </li>
                                 <li>
-                                    <Link href="/tasks">タスク</Link>
+                                    <div>タスク</div>
                                 </li>
                                 <li>
-                                    <Link href="/events">予定</Link>
+                                    <div>予定</div>
                                 </li>
                             </ul>
                         </li>
