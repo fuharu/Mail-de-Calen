@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 # 環境変数の読み込み
 load_dotenv()
 
-# ルーターのインポート
-from routers import auth, email, calendar, todos, candidates, oauth, polling
+# ルーターのインポート（パッケージ相対インポート）
+from .routers import auth, email, calendar, todos, candidates, oauth, polling
 
 app = FastAPI(
     title="Mail de Calen API",
