@@ -1,27 +1,17 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+export {};
+// import { initializeApp } from 'firebase/app';
+// import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+// import { getFirestore } from 'firebase/firestore';
+// import { getStorage } from 'firebase/storage';
+// Minimal firebase stub to avoid runtime import errors after removing firebase
+// Keep named exports that other modules may import. These are no-op placeholders
+// and should be replaced with real implementations if Firebase is reintroduced.
 
-// Firebase設定
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
+// Using `any` to keep TypeScript happy without pulling firebase types.
+export const auth: any = null;
+export const db: any = null;
+export const storage: any = null;
+export const googleProvider: any = null;
 
-// Firebaseアプリを初期化
-const app = initializeApp(firebaseConfig);
-
-// Firebaseサービスを初期化
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-// Google認証プロバイダー
-export const googleProvider = new GoogleAuthProvider();
-
+const app: any = null;
 export default app;

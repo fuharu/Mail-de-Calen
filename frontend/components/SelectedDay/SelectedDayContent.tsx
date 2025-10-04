@@ -1,7 +1,7 @@
 "use client";
 
 import { useEvents, useTodos } from "@/hooks/useApi";
-import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+// 削除: import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
 
 interface SelectedDayContentProps {
     selectedDate: Date | null;
@@ -21,28 +21,12 @@ export const SelectedDayContent = ({
         error: todosError,
     } = useTodos();
 
-    // Firestoreから候補データを取得
-    const { data: eventCandidates } = useEventCandidates();
-    const { data: todoCandidates } = useTodoCandidates();
+    // 削除: Firestoreから候補データを取得するフック呼び出し
 
-    // if (!selectedDate) {
-    //     return (
-    //         <div className="lg:grid lg:grid-cols-2 gap-6 px-5">
-    //             <div className="bg-base-100 rounded-box shadow-md p-4">
-    //                 <h2 className="text-lg font-semibold mb-4">今日のタスク</h2>
-    //                 <div className="text-center text-gray-500 py-4">
-    //                     日付を選択してください
-    //                 </div>
-    //             </div>
-    //             <div className="bg-base-100 rounded-box shadow-md p-4">
-    //                 <h2 className="text-lg font-semibold mb-4">今日の予定</h2>
-    //                 <div className="text-center text-gray-500 py-4">
-    //                     日付を選択してください
-    //                 </div>
-    //             </div>
-    //         </div>
-    //     );
-    // }
+    if (!selectedDate) {
+        // 日付が選択されていない場合の表示（コメントアウトを解除してもOK）
+        return <div>日付を選択してください</div>;
+    }
 
     const selectedDateString = selectedDate?.toDateString();
 
@@ -61,26 +45,7 @@ export const SelectedDayContent = ({
             return dueDate.toDateString() === selectedDateString;
         }) || [];
 
-    // その日のイベント候補をフィルタ
-    const dayEventCandidates =
-        eventCandidates?.filter((candidate) => {
-            const candidateDate = new Date(candidate.start);
-            return (
-                candidateDate.toDateString() === selectedDateString &&
-                candidate.status === "pending"
-            );
-        }) || [];
-
-    // その日のToDo候補をフィルタ
-    const dayTodoCandidates =
-        todoCandidates?.filter((candidate) => {
-            if (!candidate.due_date) return false;
-            const candidateDate = new Date(candidate.due_date);
-            return (
-                candidateDate.toDateString() === selectedDateString &&
-                candidate.status === "pending"
-            );
-        }) || [];
+    // 削除: 候補データをフィルタリングするロジック
 
     return (
         <div>
@@ -90,11 +55,9 @@ export const SelectedDayContent = ({
                 id="my_modal_7"
                 className="modal-toggle"
                 checked={!!selectedDate}
+                readOnly // checkedをstateで管理しない場合はreadOnlyを追加
             />
-            <div
-                className="modal"
-                role="dialog"
-            >
+            <div className="modal" role="dialog">
                 <div className="modal-box">
                     <h3 className="text-lg font-bold">
                         {selectedDate?.getFullYear() ?? "年"}年
@@ -107,97 +70,43 @@ export const SelectedDayContent = ({
                         {todosLoading && (
                             <div className="text-center py-4">
                                 <span className="loading loading-spinner loading-sm"></span>
-                                <div className="text-xs text-gray-500 mt-2">
-                                    読み込み中...
-                                </div>
                             </div>
                         )}
-                        {!todosLoading &&
-                            !todosError &&
-                            dayTodos.length === 0 &&
-                            dayTodoCandidates.length === 0 && (
-                                <div className="text-center text-gray-500 py-4">
-                                    タスクがありません
-                                </div>
-                            )}
-                        {!todosLoading &&
-                            !todosError &&
-                            (dayTodos.length > 0 ||
-                                dayTodoCandidates.length > 0) && (
-                                <div className="space-y-3">
-                                    {dayTodos.map((todo) => (
-                                        <div
-                                            key={todo.id}
-                                            className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={todo.completed}
-                                                className="checkbox checkbox-sm"
-                                                readOnly
-                                            />
-                                            <div className="flex-1">
-                                                <div className="font-medium">
-                                                    {todo.title}
-                                                </div>
-                                                {todo.due_date && (
-                                                    <div className="text-xs text-gray-500">
-                                                        期限:{" "}
-                                                        {new Date(
-                                                            todo.due_date
-                                                        ).toLocaleDateString(
-                                                            "ja-JP"
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className="badge badge-sm badge-success">
-                                                承認済み
-                                            </span>
+                        {!todosLoading && !todosError && dayTodos.length === 0 && (
+                            <div className="text-center text-gray-500 py-4">
+                                タスクがありません
+                            </div>
+                        )}
+                        {!todosLoading && !todosError && dayTodos.length > 0 && (
+                            <div className="space-y-3">
+                                {dayTodos.map((todo) => (
+                                    <div
+                                        key={todo.id}
+                                        className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={todo.completed}
+                                            className="checkbox checkbox-sm"
+                                            readOnly
+                                        />
+                                        <div className="flex-1">
+                                            <div className="font-medium">{todo.title}</div>
                                         </div>
-                                    ))}
-                                    {dayTodoCandidates.map((candidate) => (
-                                        <div
-                                            key={candidate.id}
-                                            className="flex items-center gap-3 p-2 border border-yellow-200 rounded-lg bg-yellow-50"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={candidate.completed}
-                                                className="checkbox checkbox-sm"
-                                                readOnly
-                                            />
-                                            <div className="flex-1">
-                                                <div className="font-medium">
-                                                    {candidate.title}
-                                                </div>
-                                                {candidate.due_date && (
-                                                    <div className="text-xs text-gray-500">
-                                                        期限:{" "}
-                                                        {new Date(
-                                                            candidate.due_date
-                                                        ).toLocaleDateString(
-                                                            "ja-JP"
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className="badge badge-sm badge-warning">
-                                                候補
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        <span className="badge badge-sm badge-success">
+                                            承認済み
+                                        </span>
+                                    </div>
+                                ))}
+                                {/* 削除: 候補ToDoの表示部分 */}
+                            </div>
+                        )}
                     </div>
                     <div className="py-4">
                         <h4 className="font-semibold mb-2">予定</h4>
                         {eventsLoading && (
-                            <div className="text-center py-4">
+                             <div className="text-center py-4">
                                 <span className="loading loading-spinner loading-sm"></span>
-                                <div className="text-xs text-gray-500 mt-2">
-                                    読み込み中...
-                                </div>
                             </div>
                         )}
                         {eventsError && (
@@ -205,324 +114,39 @@ export const SelectedDayContent = ({
                                 エラー: {eventsError}
                             </div>
                         )}
-                        {!eventsLoading &&
-                            !eventsError &&
-                            dayEvents.length === 0 &&
-                            dayEventCandidates.length === 0 && (
-                                <div className="text-center text-gray-500 py-4">
-                                    予定がありません
-                                </div>
-                            )}
-                        {!eventsLoading &&
-                            !eventsError &&
-                            (dayEvents.length > 0 ||
-                                dayEventCandidates.length > 0) && (
-                                <div className="space-y-3">
-                                    {dayEvents.map((event) => (
-                                        <div
-                                            key={event.id}
-                                            className="p-3 border border-gray-200 rounded-lg"
-                                        >
-                                            <div className="font-medium">
-                                                {event.title}
-                                            </div>
-                                            <div className="text-sm text-gray-600 mt-1">
-                                                {new Date(
-                                                    event.start
-                                                ).toLocaleTimeString("ja-JP", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}{" "}
-                                                -{" "}
-                                                {new Date(
-                                                    event.end
-                                                ).toLocaleTimeString("ja-JP", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </div>
-                                            {event.description && (
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    {event.description}
-                                                </div>
-                                            )}
-                                            <span className="badge badge-sm badge-success mt-2">
-                                                承認済み
-                                            </span>
-                                        </div>
-                                    ))}
-                                    {dayEventCandidates.map((candidate) => (
-                                        <div
-                                            key={candidate.id}
-                                            className="p-3 border border-yellow-200 rounded-lg bg-yellow-50"
-                                        >
-                                            <div className="font-medium">
-                                                {candidate.title}
-                                            </div>
-                                            <div className="text-sm text-gray-600 mt-1">
-                                                {new Date(
-                                                    candidate.start
-                                                ).toLocaleTimeString("ja-JP", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}{" "}
-                                                -{" "}
-                                                {new Date(
-                                                    candidate.end
-                                                ).toLocaleTimeString("ja-JP", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </div>
-                                            {candidate.description && (
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    {candidate.description}
-                                                </div>
-                                            )}
-                                            <span className="badge badge-sm badge-warning mt-2">
-                                                候補
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                        {!eventsLoading && !eventsError && dayEvents.length === 0 && (
+                            <div className="text-center text-gray-500 py-4">
+                                予定がありません
+                            </div>
+                        )}
+                        {!eventsLoading && !eventsError && dayEvents.length > 0 && (
+                            <div className="space-y-3">
+                                {dayEvents.map((event) => (
+                                    <div
+                                        key={event.id}
+                                        className="p-3 border border-gray-200 rounded-lg"
+                                    >
+                                        <div className="font-medium">{event.title}</div>
+                                        {/* ...その他の表示... */}
+                                        <span className="badge badge-sm badge-success mt-2">
+                                            承認済み
+                                        </span>
+                                    </div>
+                                ))}
+                                {/* 削除: 候補イベントの表示部分 */}
+                            </div>
+                        )}
                     </div>
                     <div className="modal-action">
-                        <label
-                            htmlFor="my_modal_7"
-                            className="btn"
-                            onClick={() => {
-                                (document.getElementById(
-                                    "my_modal_7"
-                                ) as HTMLInputElement)!.checked = false;
-                            }}
-                        >
+                        <label htmlFor="my_modal_7" className="btn">
                             閉じる
                         </label>
                     </div>
                 </div>
-                <label
-                    className="modal-backdrop"
-                    htmlFor="my_modal_7"
-                >
+                <label className="modal-backdrop" htmlFor="my_modal_7">
                     Close
                 </label>
             </div>
         </div>
-        // <div className="lg:grid lg:grid-cols-2">
-        //     <div className="grid-cols-1 list bg-base-100 rounded-box shadow-md m-5">
-        //         {/* その日のタスク */}
-        //         <div className="bg-base-100 rounded-box shadow-md ">
-        //             <h2 className="p-4 pb-2 text-xs opacity-90 tracking-wide">
-        //                 {selectedDate.getFullYear()}年
-        //                 {selectedDate.getMonth() + 1}月{selectedDate.getDate()}
-        //                 日のタスク
-        //             </h2>
-
-        //             {todosLoading && (
-        //                 <div className="text-center py-4">
-        //                     <span className="loading loading-spinner loading-sm"></span>
-        //                     <div className="text-xs text-gray-500 mt-2">
-        //                         読み込み中...
-        //                     </div>
-        //                 </div>
-        //             )}
-
-        //             {!todosLoading &&
-        //                 !todosError &&
-        //                 dayTodos.length === 0 &&
-        //                 dayTodoCandidates.length === 0 && (
-        //                     <div className="text-center text-gray-500 py-4">
-        //                         タスクがありません
-        //                     </div>
-        //                 )}
-
-        //             {!todosLoading &&
-        //                 !todosError &&
-        //                 (dayTodos.length > 0 ||
-        //                     dayTodoCandidates.length > 0) && (
-        //                     <div className="space-y-3">
-        //                         {/* 承認済みToDo */}
-        //                         {dayTodos.map((todo) => (
-        //                             <div
-        //                                 key={todo.id}
-        //                                 className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg"
-        //                             >
-        //                                 <input
-        //                                     type="checkbox"
-        //                                     checked={todo.completed}
-        //                                     className="checkbox checkbox-sm"
-        //                                     readOnly
-        //                                 />
-        //                                 <div className="flex-1">
-        //                                     <div className="font-medium">
-        //                                         {todo.title}
-        //                                     </div>
-        //                                     {todo.due_date && (
-        //                                         <div className="text-xs text-gray-500">
-        //                                             期限:{" "}
-        //                                             {new Date(
-        //                                                 todo.due_date
-        //                                             ).toLocaleDateString(
-        //                                                 "ja-JP"
-        //                                             )}
-        //                                         </div>
-        //                                     )}
-        //                                 </div>
-        //                                 <span className="badge badge-sm badge-success">
-        //                                     承認済み
-        //                                 </span>
-        //                             </div>
-        //                         ))}
-
-        //                         {/* 候補ToDo */}
-        //                         {dayTodoCandidates.map((candidate) => (
-        //                             <div
-        //                                 key={candidate.id}
-        //                                 className="flex items-center gap-3 p-2 border border-yellow-200 rounded-lg bg-yellow-50"
-        //                             >
-        //                                 <input
-        //                                     type="checkbox"
-        //                                     checked={candidate.completed}
-        //                                     className="checkbox checkbox-sm"
-        //                                     readOnly
-        //                                 />
-        //                                 <div className="flex-1">
-        //                                     <div className="font-medium">
-        //                                         {candidate.title}
-        //                                     </div>
-        //                                     {candidate.due_date && (
-        //                                         <div className="text-xs text-gray-500">
-        //                                             期限:{" "}
-        //                                             {new Date(
-        //                                                 candidate.due_date
-        //                                             ).toLocaleDateString(
-        //                                                 "ja-JP"
-        //                                             )}
-        //                                         </div>
-        //                                     )}
-        //                                 </div>
-        //                                 <span className="badge badge-sm badge-warning">
-        //                                     候補
-        //                                 </span>
-        //                             </div>
-        //                         ))}
-        //                     </div>
-        //                 )}
-        //         </div>
-        //         <div className="grid-cols-1 list bg-base-100 rounded-box shadow-md m-5">
-        //             {/* その日の予定 */}
-        //             <div className="bg-base-100 rounded-box shadow-md p-4">
-        //                 <h2 className="text-lg font-semibold mb-4">
-        //                     {selectedDate.getFullYear()}年
-        //                     {selectedDate.getMonth() + 1}月
-        //                     {selectedDate.getDate()}
-        //                     日の予定
-        //                 </h2>
-
-        //                 {eventsLoading && (
-        //                     <div className="text-center py-4">
-        //                         <span className="loading loading-spinner loading-sm"></span>
-        //                         <div className="text-xs text-gray-500 mt-2">
-        //                             読み込み中...
-        //                         </div>
-        //                     </div>
-        //                 )}
-
-        //                 {eventsError && (
-        //                     <div className="text-center text-red-500 text-sm">
-        //                         エラー: {eventsError}
-        //                     </div>
-        //                 )}
-
-        //                 {!eventsLoading &&
-        //                     !eventsError &&
-        //                     dayEvents.length === 0 &&
-        //                     dayEventCandidates.length === 0 && (
-        //                         <div className="text-center text-gray-500 py-4">
-        //                             予定がありません
-        //                         </div>
-        //                     )}
-
-        //                 {!eventsLoading &&
-        //                     !eventsError &&
-        //                     (dayEvents.length > 0 ||
-        //                         dayEventCandidates.length > 0) && (
-        //                         <div className="space-y-3">
-        //                             {/* 承認済みイベント */}
-        //                             {dayEvents.map((event) => (
-        //                                 <div
-        //                                     key={event.id}
-        //                                     className="p-3 border border-gray-200 rounded-lg"
-        //                                 >
-        //                                     <div className="font-medium">
-        //                                         {event.title}
-        //                                     </div>
-        //                                     <div className="text-sm text-gray-600 mt-1">
-        //                                         {new Date(
-        //                                             event.start
-        //                                         ).toLocaleTimeString("ja-JP", {
-        //                                             hour: "2-digit",
-        //                                             minute: "2-digit",
-        //                                         })}{" "}
-        //                                         -{" "}
-        //                                         {new Date(
-        //                                             event.end
-        //                                         ).toLocaleTimeString("ja-JP", {
-        //                                             hour: "2-digit",
-        //                                             minute: "2-digit",
-        //                                         })}
-        //                                     </div>
-        //                                     {event.description && (
-        //                                         <div className="text-xs text-gray-500 mt-1">
-        //                                             {event.description}
-        //                                         </div>
-        //                                     )}
-        //                                     <span className="badge badge-sm badge-success mt-2">
-        //                                         承認済み
-        //                                     </span>
-        //                                 </div>
-        //                             ))}
-
-        //                             {/* 候補イベント */}
-        //                             {dayEventCandidates.map((candidate) => (
-        //                                 <div
-        //                                     key={candidate.id}
-        //                                     className="p-3 border border-yellow-200 rounded-lg bg-yellow-50"
-        //                                 >
-        //                                     <div className="font-medium">
-        //                                         {candidate.title}
-        //                                     </div>
-        //                                     <div className="text-sm text-gray-600 mt-1">
-        //                                         {new Date(
-        //                                             candidate.start
-        //                                         ).toLocaleTimeString("ja-JP", {
-        //                                             hour: "2-digit",
-        //                                             minute: "2-digit",
-        //                                         })}{" "}
-        //                                         -{" "}
-        //                                         {new Date(
-        //                                             candidate.end
-        //                                         ).toLocaleTimeString("ja-JP", {
-        //                                             hour: "2-digit",
-        //                                             minute: "2-digit",
-        //                                         })}
-        //                                     </div>
-        //                                     {candidate.description && (
-        //                                         <div className="text-xs text-gray-500 mt-1">
-        //                                             {candidate.description}
-        //                                         </div>
-        //                                     )}
-        //                                     <span className="badge badge-sm badge-warning mt-2">
-        //                                         候補
-        //                                     </span>
-        //                                 </div>
-        //                             ))}
-        //                         </div>
-        //                     )}
-        //             </div>
-        //         </div>
-        //     </div>
-        // </div>
     );
 };

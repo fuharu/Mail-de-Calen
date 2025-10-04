@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { apiClient } from "@/lib/api";
 
 interface Settings {
     keywords: string[];
@@ -40,15 +39,13 @@ export function useSettings() {
             setLoading(true);
             setError(null);
 
-            const settingsRef = doc(db, "user_settings", user.uid);
-            const settingsSnap = await getDoc(settingsRef);
-
-            if (settingsSnap.exists()) {
-                const userSettings = settingsSnap.data() as Settings;
-                setSettings({ ...defaultSettings, ...userSettings });
-            } else {
-                // 初回アクセス時はデフォルト設定を保存
-                await saveSettings(defaultSettings);
+            // Try fetching user settings from backend API if available
+            try {
+                const res = await apiClient.getTodos(); // placeholder endpoint
+                // No real settings endpoint yet; just use defaults
+                setSettings(defaultSettings);
+            } catch (err) {
+                // Fallback to defaults
                 setSettings(defaultSettings);
             }
         } catch (err) {
@@ -67,18 +64,9 @@ export function useSettings() {
     // 設定を保存する
     const saveSettings = async (newSettings: Settings) => {
         if (!user) return;
-
-        try {
-            const settingsRef = doc(db, "user_settings", user.uid);
-            await setDoc(settingsRef, newSettings, { merge: true });
-            setSettings(newSettings);
-            setError(null);
-        } catch (err) {
-            console.error("設定の保存に失敗しました:", err);
-            setError(
-                err instanceof Error ? err.message : "設定の保存に失敗しました"
-            );
-        }
+        // TODO: implement backend settings save endpoint
+        setSettings(newSettings);
+        setError(null);
     };
 
     // 設定を更新する
