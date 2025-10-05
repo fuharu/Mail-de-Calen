@@ -4,7 +4,7 @@ import { useTodos } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 import { apiClient } from "@/lib/api";
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "react";
 
 interface ToDoProps {
     onDataChange?: () => void;
@@ -28,8 +28,34 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
     const [editingMemo, setEditingMemo] = useState<string>("");
     const [editingDueDate, setEditingDueDate] = useState<string>("");
     const [editMode, setEditMode] = useState<'memo' | 'dueDate' | null>(null);
+    
+    // スクロール位置を保持するためのref
+    const containerRef = useRef<HTMLDivElement>(null);
+    const scrollPositionRef = useRef<number>(0);
 
     const todosData = todosResp?.todos || [];
+
+    // スクロール位置を保存・復元する関数
+    const saveScrollPosition = () => {
+        if (containerRef.current) {
+            scrollPositionRef.current = window.scrollY;
+        }
+    };
+
+    const restoreScrollPosition = () => {
+        if (scrollPositionRef.current > 0) {
+            setTimeout(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+            }, 0);
+        }
+    };
+
+    // データ更新時にスクロール位置を復元
+    useEffect(() => {
+        if (todosData.length > 0) {
+            restoreScrollPosition();
+        }
+    }, [todosData]);
 
     // refetch関数を公開
     useImperativeHandle(ref, () => ({
@@ -39,6 +65,7 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
     // タスクの完了状態を切り替え
    const handleToggleCompletion = async (todoId: string) => {
        try {
+           saveScrollPosition(); // スクロール位置を保存
            await apiClient.toggleTodoCompletion(todoId);
            refetch(); // データを再取得
            onDataChange?.(); // カレンダーを更新
@@ -71,6 +98,7 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
    // メモ編集を保存
    const handleSaveMemo = async (todoId: string) => {
        try {
+           saveScrollPosition(); // スクロール位置を保存
            console.log("メモ保存デバッグ:", { todoId, todosData, editingMemo });
            const todo = todosData.find(t => t.id === parseInt(todoId));
            console.log("見つかったタスク:", todo);
@@ -95,6 +123,7 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
     // 期限編集を保存
     const handleSaveDueDate = async (todoId: string) => {
         try {
+            saveScrollPosition(); // スクロール位置を保存
             console.log("期限保存デバッグ:", { todoId, todosData, editingDueDate });
             const todo = todosData.find(t => t.id === parseInt(todoId));
             console.log("見つかったタスク:", todo);
@@ -173,7 +202,7 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
     }
 
     return (
-        <div>
+        <div ref={containerRef}>
             <ul className="list bg-base-100 rounded-box shadow-md m-5">
                 <li className="p-4 pb-2 text-xs opacity-90 tracking-wide">
                     直近のタスク
@@ -194,7 +223,15 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
                                     type="checkbox"
                                     checked={todo.completed}
                                     className="checkbox checkbox-sm"
-                                    onChange={() => handleToggleCompletion(todo.id)}
+                                    onChange={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleToggleCompletion(todo.id);
+                                    }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
                                 />
                             </div>
                             <div className="flex-1">
@@ -212,13 +249,20 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
                                         <div className="flex gap-2 mt-1">
                                             <button
                                                 className="btn btn-xs btn-primary"
-                                                onClick={() => handleSaveDueDate(todo.id)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleSaveDueDate(todo.id);
+                                                }}
                                             >
                                                 保存
                                             </button>
                                             <button
                                                 className="btn btn-xs btn-ghost"
-                                                onClick={handleCancelEdit}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleCancelEdit();
+                                                }}
                                             >
                                                 キャンセル
                                             </button>
@@ -246,13 +290,20 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
                                         <div className="flex gap-2 mt-1">
                                             <button
                                                 className="btn btn-xs btn-primary"
-                                                onClick={() => handleSaveMemo(todo.id)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleSaveMemo(todo.id);
+                                                }}
                                             >
                                                 保存
                                             </button>
                                             <button
                                                 className="btn btn-xs btn-ghost"
-                                                onClick={handleCancelEdit}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleCancelEdit();
+                                                }}
                                             >
                                                 キャンセル
                                             </button>
@@ -269,7 +320,10 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
                             <div className="flex gap-1">
                                 <button 
                                     className="btn btn-square btn-ghost btn-sm"
-                                    onClick={() => handleStartEditMemo(todo)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleStartEditMemo(todo);
+                                    }}
                                     title="メモを編集"
                                 >
                                     <svg
@@ -282,7 +336,10 @@ export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
                                 </button>
                                 <button 
                                     className="btn btn-square btn-ghost btn-sm"
-                                    onClick={() => handleStartEditDueDate(todo)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleStartEditDueDate(todo);
+                                    }}
                                     title="期限を編集"
                                 >
                                     <svg

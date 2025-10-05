@@ -4,7 +4,7 @@ import { useEvents } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 import { apiClient } from "@/lib/api";
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "react";
 
 interface RecentlyCalendarListProps {
     onDataChange?: () => void;
@@ -29,9 +29,35 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
     const [editingStartTime, setEditingStartTime] = useState<string>("");
     const [editingEndTime, setEditingEndTime] = useState<string>("");
     const [editMode, setEditMode] = useState<'description' | 'time' | null>(null);
+    
+    // スクロール位置を保持するためのref
+    const containerRef = useRef<HTMLDivElement>(null);
+    const scrollPositionRef = useRef<number>(0);
 
     // apiClient returns { events: [...] }
     const eventsData = eventsResp?.events || [];
+
+    // スクロール位置を保存・復元する関数
+    const saveScrollPosition = () => {
+        if (containerRef.current) {
+            scrollPositionRef.current = window.scrollY;
+        }
+    };
+
+    const restoreScrollPosition = () => {
+        if (scrollPositionRef.current > 0) {
+            setTimeout(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+            }, 0);
+        }
+    };
+
+    // データ更新時にスクロール位置を復元
+    useEffect(() => {
+        if (eventsData.length > 0) {
+            restoreScrollPosition();
+        }
+    }, [eventsData]);
 
     // refetch関数を公開
     useImperativeHandle(ref, () => ({
@@ -41,6 +67,7 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
     // 予定の完了状態を切り替え
    const handleToggleCompletion = async (eventId: string) => {
        try {
+           saveScrollPosition(); // スクロール位置を保存
            await apiClient.toggleEventCompletion(eventId);
            refetch(); // データを再取得
            onDataChange?.(); // カレンダーを更新
@@ -59,19 +86,19 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
     // 時間編集を開始
     const handleStartEditTime = (event: any) => {
         setEditingEvent(event.id);
-        // UTC日付をローカル日付に変換して表示
-        const startUtcDate = new Date(event.start + 'Z'); // UTCとして解釈
-        const endUtcDate = new Date(event.end + 'Z'); // UTCとして解釈
-        const startLocalDate = new Date(startUtcDate.getTime() - startUtcDate.getTimezoneOffset() * 60000);
-        const endLocalDate = new Date(endUtcDate.getTime() - endUtcDate.getTimezoneOffset() * 60000);
-        setEditingStartTime(startLocalDate.toISOString().slice(0, 16));
-        setEditingEndTime(endLocalDate.toISOString().slice(0, 16));
+        // バックエンドから送られてくるUTC時間をそのまま編集フォームに設定
+        const startUtc = new Date(event.start);
+        const endUtc = new Date(event.end);
+        
+        setEditingStartTime(startUtc.toISOString().slice(0, 16));
+        setEditingEndTime(endUtc.toISOString().slice(0, 16));
         setEditMode('time');
     };
 
    // メモ編集を保存
    const handleSaveDescription = async (eventId: string) => {
        try {
+           saveScrollPosition(); // スクロール位置を保存
            console.log("予定メモ保存デバッグ:", { eventId, eventsData, editingDescription });
            const event = eventsData.find(e => e.id === parseInt(eventId));
            console.log("見つかった予定:", event);
@@ -96,18 +123,31 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
     // 時間編集を保存
     const handleSaveTime = async (eventId: string) => {
         try {
+            saveScrollPosition(); // スクロール位置を保存
             console.log("予定時間保存デバッグ:", { eventId, eventsData, editingStartTime, editingEndTime });
+            
+            // 時間の妥当性チェック
+            const startTime = new Date(editingStartTime);
+            const endTime = new Date(editingEndTime);
+            
+            if (startTime >= endTime) {
+                alert("開始時間は終了時間より前である必要があります。");
+                return;
+            }
+            
             const event = eventsData.find(e => e.id === parseInt(eventId));
             console.log("見つかった予定:", event);
             if (event) {
-                // ローカル時間をUTCに変換して保存
-                const startTime = new Date(editingStartTime).toISOString();
-                const endTime = new Date(editingEndTime).toISOString();
-                console.log("保存する時間:", { startTime, endTime });
+                // 編集された時間（9時間前）に9時間を足してUTC時間として保存
+                const startTimePlus9h = new Date(startTime.getTime() + 9 * 60 * 60 * 1000);
+                const endTimePlus9h = new Date(endTime.getTime() + 9 * 60 * 60 * 1000);
+                const startTimeUTC = startTimePlus9h.toISOString();
+                const endTimeUTC = endTimePlus9h.toISOString();
+                console.log("保存する時間:", { startTimeUTC, endTimeUTC });
                 await apiClient.updateEvent(eventId, {
                     ...event,
-                    start: startTime,
-                    end: endTime
+                    start: startTimeUTC,
+                    end: endTimeUTC
                 });
                 setEditingEvent(null);
                 setEditingStartTime("");
@@ -172,7 +212,7 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
     }
 
     return (
-        <div>
+        <div ref={containerRef}>
             <ul className="list bg-base-100 rounded-box shadow-md m-5">
                 <li className="p-4 pb-2 text-xs opacity-90 tracking-wide">
                     直近の予定
@@ -193,7 +233,15 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
                                     type="checkbox"
                                     checked={event.completed}
                                     className="checkbox checkbox-sm"
-                                    onChange={() => handleToggleCompletion(event.id)}
+                                    onChange={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleToggleCompletion(event.id);
+                                    }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
                                 />
                             </div>
                             <div className="flex-1">
@@ -201,54 +249,75 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
                                     {event.title}
                                 </div>
                                 {editingEvent === event.id && editMode === 'time' ? (
-                                    <div className="mt-2">
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="datetime-local"
-                                                value={editingStartTime}
-                                                onChange={(e) => setEditingStartTime(e.target.value)}
-                                                className="input input-sm flex-1"
-                                                placeholder="開始時間"
-                                            />
-                                            <input
-                                                type="datetime-local"
-                                                value={editingEndTime}
-                                                onChange={(e) => setEditingEndTime(e.target.value)}
-                                                className="input input-sm flex-1"
-                                                placeholder="終了時間"
-                                            />
-                                        </div>
-                                        <div className="flex gap-2 mt-1">
-                                            <button
-                                                className="btn btn-xs btn-primary"
-                                                onClick={() => handleSaveTime(event.id)}
-                                            >
-                                                保存
-                                            </button>
-                                            <button
-                                                className="btn btn-xs btn-ghost"
-                                                onClick={handleCancelEdit}
-                                            >
-                                                キャンセル
-                                            </button>
+                                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-600 mb-1 block">開始時間</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={editingStartTime}
+                                                    onChange={(e) => {
+                                                        setEditingStartTime(e.target.value);
+                                                        // 開始時間が終了時間より後になった場合、終了時間を調整
+                                                        if (e.target.value && editingEndTime && new Date(e.target.value) >= new Date(editingEndTime)) {
+                                                            const newEndTime = new Date(new Date(e.target.value).getTime() + 60 * 60 * 1000); // 1時間後
+                                                            setEditingEndTime(newEndTime.toISOString().slice(0, 16));
+                                                        }
+                                                    }}
+                                                    className="input input-sm w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-600 mb-1 block">終了時間</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={editingEndTime}
+                                                    onChange={(e) => setEditingEndTime(e.target.value)}
+                                                    min={editingStartTime}
+                                                    className="input input-sm w-full"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2 pt-2">
+                                                <button
+                                                    className="btn btn-xs btn-primary flex-1"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleSaveTime(event.id);
+                                                    }}
+                                                >
+                                                    保存
+                                                </button>
+                                                <button
+                                                    className="btn btn-xs btn-ghost flex-1"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleCancelEdit();
+                                                    }}
+                                                >
+                                                    キャンセル
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="text-xs uppercase font-semibold opacity-60">
                                         {(() => {
-                                            // UTC時間をローカル時間に変換
-                                            const startUtc = new Date(event.start + 'Z');
-                                            const endUtc = new Date(event.end + 'Z');
-                                            const startLocal = new Date(startUtc.getTime() - startUtc.getTimezoneOffset() * 60000);
-                                            const endLocal = new Date(endUtc.getTime() - endUtc.getTimezoneOffset() * 60000);
+                                            // バックエンドから送られてくるUTC時間を9時間前にして表示
+                                            const startUtc = new Date(event.start);
+                                            const endUtc = new Date(event.end);
                                             
-                                            return `${startLocal.toLocaleDateString("ja-JP")} ${startLocal.toLocaleTimeString(
+                                            // 9時間前の時間を作成
+                                            const startMinus9h = new Date(startUtc.getTime() - 9 * 60 * 60 * 1000);
+                                            const endMinus9h = new Date(endUtc.getTime() - 9 * 60 * 60 * 1000);
+                                            
+                                            return `${startMinus9h.toLocaleDateString("ja-JP")} ${startMinus9h.toLocaleTimeString(
                                                 "ja-JP",
                                                 {
                                                     hour: "2-digit",
                                                     minute: "2-digit",
                                                 }
-                                            )} - ${endLocal.toLocaleTimeString(
+                                            )} - ${endMinus9h.toLocaleTimeString(
                                                 "ja-JP",
                                                 {
                                                     hour: "2-digit",
@@ -259,27 +328,39 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
                                     </div>
                                 )}
                                 {editingEvent === event.id && editMode === 'description' ? (
-                                    <div className="mt-2">
-                                        <textarea
-                                            value={editingDescription}
-                                            onChange={(e) => setEditingDescription(e.target.value)}
-                                            className="textarea textarea-sm w-full"
-                                            placeholder="メモを入力..."
-                                            rows={2}
-                                        />
-                                        <div className="flex gap-2 mt-1">
-                                            <button
-                                                className="btn btn-xs btn-primary"
-                                                onClick={() => handleSaveDescription(event.id)}
-                                            >
-                                                保存
-                                            </button>
-                                            <button
-                                                className="btn btn-xs btn-ghost"
-                                                onClick={handleCancelEdit}
-                                            >
-                                                キャンセル
-                                            </button>
+                                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-600 mb-1 block">メモ</label>
+                                                <textarea
+                                                    value={editingDescription}
+                                                    onChange={(e) => setEditingDescription(e.target.value)}
+                                                    className="textarea textarea-sm w-full"
+                                                    placeholder="メモを入力..."
+                                                    rows={3}
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    className="btn btn-xs btn-primary flex-1"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleSaveDescription(event.id);
+                                                    }}
+                                                >
+                                                    保存
+                                                </button>
+                                                <button
+                                                    className="btn btn-xs btn-ghost flex-1"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleCancelEdit();
+                                                    }}
+                                                >
+                                                    キャンセル
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
@@ -293,7 +374,10 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
                             <div className="flex gap-1">
                                 <button 
                                     className="btn btn-square btn-ghost btn-sm"
-                                    onClick={() => handleStartEditDescription(event)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleStartEditDescription(event);
+                                    }}
                                     title="メモを編集"
                                 >
                                     <svg
@@ -306,7 +390,10 @@ export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, Recently
                                 </button>
                                 <button 
                                     className="btn btn-square btn-ghost btn-sm"
-                                    onClick={() => handleStartEditTime(event)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleStartEditTime(event);
+                                    }}
                                     title="時間を編集"
                                 >
                                     <svg

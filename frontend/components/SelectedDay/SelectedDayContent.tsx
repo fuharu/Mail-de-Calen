@@ -118,12 +118,12 @@ export const SelectedDayContent = ({
     // 予定の時間編集を開始
     const handleStartEditEventTime = (event: any) => {
         setEditingEvent(event.id);
-        const startUtcDate = new Date(event.start + 'Z');
-        const endUtcDate = new Date(event.end + 'Z');
-        const startLocalDate = new Date(startUtcDate.getTime() - startUtcDate.getTimezoneOffset() * 60000);
-        const endLocalDate = new Date(endUtcDate.getTime() - endUtcDate.getTimezoneOffset() * 60000);
-        setEditingStartTime(startLocalDate.toISOString().slice(0, 16));
-        setEditingEndTime(endLocalDate.toISOString().slice(0, 16));
+        // バックエンドから送られてくるUTC時間をそのまま編集フォームに設定
+        const startUtc = new Date(event.start);
+        const endUtc = new Date(event.end);
+        
+        setEditingStartTime(startUtc.toISOString().slice(0, 16));
+        setEditingEndTime(endUtc.toISOString().slice(0, 16));
         setEditMode('time');
     };
 
@@ -195,14 +195,26 @@ export const SelectedDayContent = ({
     // 予定の時間編集を保存
     const handleSaveEventTime = async (eventId: string) => {
         try {
+            // 時間の妥当性チェック
+            const startTime = new Date(editingStartTime);
+            const endTime = new Date(editingEndTime);
+            
+            if (startTime >= endTime) {
+                alert("開始時間は終了時間より前である必要があります。");
+                return;
+            }
+            
             const event = eventsData?.events?.find(e => e.id === parseInt(eventId));
             if (event) {
-                const startTime = new Date(editingStartTime).toISOString();
-                const endTime = new Date(editingEndTime).toISOString();
+                // 編集された時間（9時間前）に9時間を足してUTC時間として保存
+                const startTimePlus9h = new Date(startTime.getTime() + 9 * 60 * 60 * 1000);
+                const endTimePlus9h = new Date(endTime.getTime() + 9 * 60 * 60 * 1000);
+                const startTimeUTC = startTimePlus9h.toISOString();
+                const endTimeUTC = endTimePlus9h.toISOString();
                 await apiClient.updateEvent(eventId, {
                     ...event,
-                    start: startTime,
-                    end: endTime
+                    start: startTimeUTC,
+                    end: endTimeUTC
                 });
                 setEditingEvent(null);
                 setEditingStartTime("");
@@ -280,26 +292,34 @@ export const SelectedDayContent = ({
                             </div>
                         )}
                         {!todosLoading && !todosError && dayTodos.length === 0 && (
-                            <div className="text-center text-gray-500 py-4">
-                                タスクがありません
-                            </div>
-                        )}
+                                <div className="text-center text-gray-500 py-4">
+                                    タスクがありません
+                                </div>
+                            )}
                         {!todosLoading && !todosError && dayTodos.length > 0 && (
-                            <div className="space-y-3">
-                                {dayTodos.map((todo) => (
-                                    <div
-                                        key={todo.id}
-                                        className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={todo.completed}
-                                            className="checkbox checkbox-sm"
-                                            onChange={() => handleToggleTodoCompletion(todo.id)}
-                                        />
-                                        <div className="flex-1">
+                                <div className="space-y-3">
+                                    {dayTodos.map((todo) => (
+                                        <div
+                                            key={todo.id}
+                                            className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={todo.completed}
+                                                className="checkbox checkbox-sm"
+                                                onChange={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleToggleTodoCompletion(todo.id);
+                                                }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }}
+                                            />
+                                            <div className="flex-1">
                                             <div className={`font-medium ${todo.completed ? 'line-through opacity-60' : ''}`}>
-                                                {todo.title}
+                                                    {todo.title}
                                             </div>
                                             {editingTodo === todo.id && editMode === 'dueDate' ? (
                                                 <div className="mt-2">
@@ -312,7 +332,11 @@ export const SelectedDayContent = ({
                                                     <div className="flex gap-2 mt-1">
                                                         <button
                                                             className="btn btn-xs btn-primary"
-                                                            onClick={() => handleSaveTodoDueDate(todo.id)}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleSaveTodoDueDate(todo.id);
+                                                            }}
                                                         >
                                                             保存
                                                         </button>
@@ -343,7 +367,11 @@ export const SelectedDayContent = ({
                                                     <div className="flex gap-2 mt-1">
                                                         <button
                                                             className="btn btn-xs btn-primary"
-                                                            onClick={() => handleSaveTodoMemo(todo.id)}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleSaveTodoMemo(todo.id);
+                                                            }}
                                                         >
                                                             保存
                                                         </button>
@@ -353,7 +381,7 @@ export const SelectedDayContent = ({
                                                         >
                                                             キャンセル
                                                         </button>
-                                                    </div>
+                                        </div>
                                                 </div>
                                             ) : (
                                                 todo.memo && (
@@ -361,12 +389,15 @@ export const SelectedDayContent = ({
                                                         {todo.memo}
                                                     </div>
                                                 )
-                                            )}
-                                        </div>
+                                                )}
+                                            </div>
                                         <div className="flex gap-1">
                                             <button 
                                                 className="btn btn-square btn-ghost btn-sm"
-                                                onClick={() => handleStartEditTodoMemo(todo)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStartEditTodoMemo(todo);
+                                                }}
                                                 title="メモを編集"
                                             >
                                                 <svg
@@ -379,7 +410,10 @@ export const SelectedDayContent = ({
                                             </button>
                                             <button 
                                                 className="btn btn-square btn-ghost btn-sm"
-                                                onClick={() => handleStartEditTodoDueDate(todo)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStartEditTodoDueDate(todo);
+                                                }}
                                                 title="期限を編集"
                                             >
                                                 <svg
@@ -391,15 +425,15 @@ export const SelectedDayContent = ({
                                                 </svg>
                                             </button>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                     </div>
                     <div className="py-4">
                         <h4 className="font-semibold mb-2">予定</h4>
                         {eventsLoading && (
-                             <div className="text-center py-4">
+                            <div className="text-center py-4">
                                 <span className="loading loading-spinner loading-sm"></span>
                             </div>
                         )}
@@ -409,122 +443,166 @@ export const SelectedDayContent = ({
                             </div>
                         )}
                         {!eventsLoading && !eventsError && dayEvents.length === 0 && (
-                            <div className="text-center text-gray-500 py-4">
-                                予定がありません
-                            </div>
-                        )}
+                                <div className="text-center text-gray-500 py-4">
+                                    予定がありません
+                                </div>
+                            )}
                         {!eventsLoading && !eventsError && dayEvents.length > 0 && (
-                            <div className="space-y-3">
-                                {dayEvents.map((event) => (
-                                    <div
-                                        key={event.id}
-                                        className="p-3 border border-gray-200 rounded-lg"
-                                    >
+                                <div className="space-y-3">
+                                    {dayEvents.map((event) => (
+                                        <div
+                                            key={event.id}
+                                            className="p-3 border border-gray-200 rounded-lg"
+                                        >
                                         <div className="flex items-center gap-3">
                                             <input
                                                 type="checkbox"
                                                 checked={event.completed}
                                                 className="checkbox checkbox-sm"
-                                                onChange={() => handleToggleEventCompletion(event.id)}
+                                                onChange={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleToggleEventCompletion(event.id);
+                                                }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }}
                                             />
                                             <div className="flex-1">
                                                 <div className={`font-medium ${event.completed ? 'line-through opacity-60' : ''}`}>
-                                                    {event.title}
-                                                </div>
+                                                {event.title}
+                                            </div>
                                                 {editingEvent === event.id && editMode === 'time' ? (
-                                                    <div className="mt-2">
-                                                        <div className="flex gap-2">
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={editingStartTime}
-                                                                onChange={(e) => setEditingStartTime(e.target.value)}
-                                                                className="input input-sm flex-1"
-                                                                placeholder="開始時間"
-                                                            />
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={editingEndTime}
-                                                                onChange={(e) => setEditingEndTime(e.target.value)}
-                                                                className="input input-sm flex-1"
-                                                                placeholder="終了時間"
-                                                            />
-                                                        </div>
-                                                        <div className="flex gap-2 mt-1">
-                                                            <button
-                                                                className="btn btn-xs btn-primary"
-                                                                onClick={() => handleSaveEventTime(event.id)}
-                                                            >
-                                                                保存
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-xs btn-ghost"
-                                                                onClick={handleCancelEdit}
-                                                            >
-                                                                キャンセル
-                                                            </button>
+                                                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                                                        <div className="space-y-3">
+                                                            <div>
+                                                                <label className="text-xs font-medium text-gray-600 mb-1 block">開始時間</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    value={editingStartTime}
+                                                                    onChange={(e) => {
+                                                                        setEditingStartTime(e.target.value);
+                                                                        // 開始時間が終了時間より後になった場合、終了時間を調整
+                                                                        if (e.target.value && editingEndTime && new Date(e.target.value) >= new Date(editingEndTime)) {
+                                                                            const newEndTime = new Date(new Date(e.target.value).getTime() + 60 * 60 * 1000); // 1時間後
+                                                                            setEditingEndTime(newEndTime.toISOString().slice(0, 16));
+                                                                        }
+                                                                    }}
+                                                                    className="input input-sm w-full"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs font-medium text-gray-600 mb-1 block">終了時間</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    value={editingEndTime}
+                                                                    onChange={(e) => setEditingEndTime(e.target.value)}
+                                                                    min={editingStartTime}
+                                                                    className="input input-sm w-full"
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-2 pt-2">
+                                                                <button
+                                                                    className="btn btn-xs btn-primary flex-1"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        handleSaveEventTime(event.id);
+                                                                    }}
+                                                                >
+                                                                    保存
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-xs btn-ghost flex-1"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        handleCancelEdit();
+                                                                    }}
+                                                                >
+                                                                    キャンセル
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs uppercase font-semibold opacity-60">
                                                         {(() => {
-                                                            // UTC時間をローカル時間に変換
-                                                            const startUtc = new Date(event.start + 'Z');
-                                                            const endUtc = new Date(event.end + 'Z');
-                                                            const startLocal = new Date(startUtc.getTime() - startUtc.getTimezoneOffset() * 60000);
-                                                            const endLocal = new Date(endUtc.getTime() - endUtc.getTimezoneOffset() * 60000);
+                                                            // バックエンドから送られてくるUTC時間を9時間前にして表示
+                                                            const startUtc = new Date(event.start);
+                                                            const endUtc = new Date(event.end);
                                                             
-                                                            return `${startLocal.toLocaleDateString("ja-JP")} ${startLocal.toLocaleTimeString(
+                                                            // 9時間前の時間を作成
+                                                            const startMinus9h = new Date(startUtc.getTime() - 9 * 60 * 60 * 1000);
+                                                            const endMinus9h = new Date(endUtc.getTime() - 9 * 60 * 60 * 1000);
+                                                            
+                                                            return `${startMinus9h.toLocaleDateString("ja-JP")} ${startMinus9h.toLocaleTimeString(
                                                                 "ja-JP",
                                                                 {
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
                                                                 }
-                                                            )} - ${endLocal.toLocaleTimeString(
+                                                            )} - ${endMinus9h.toLocaleTimeString(
                                                                 "ja-JP",
                                                                 {
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
                                                                 }
                                                             )}`;
                                                         })()}
                                                     </div>
                                                 )}
                                                 {editingEvent === event.id && editMode === 'description' ? (
-                                                    <div className="mt-2">
-                                                        <textarea
-                                                            value={editingDescription}
-                                                            onChange={(e) => setEditingDescription(e.target.value)}
-                                                            className="textarea textarea-sm w-full"
-                                                            placeholder="メモを入力..."
-                                                            rows={2}
-                                                        />
-                                                        <div className="flex gap-2 mt-1">
-                                                            <button
-                                                                className="btn btn-xs btn-primary"
-                                                                onClick={() => handleSaveEventDescription(event.id)}
-                                                            >
-                                                                保存
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-xs btn-ghost"
-                                                                onClick={handleCancelEdit}
-                                                            >
-                                                                キャンセル
-                                                            </button>
+                                                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                                                        <div className="space-y-3">
+                                                            <div>
+                                                                <label className="text-xs font-medium text-gray-600 mb-1 block">メモ</label>
+                                                                <textarea
+                                                                    value={editingDescription}
+                                                                    onChange={(e) => setEditingDescription(e.target.value)}
+                                                                    className="textarea textarea-sm w-full"
+                                                                    placeholder="メモを入力..."
+                                                                    rows={3}
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    className="btn btn-xs btn-primary flex-1"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        handleSaveEventDescription(event.id);
+                                                                    }}
+                                                                >
+                                                                    保存
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-xs btn-ghost flex-1"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        handleCancelEdit();
+                                                                    }}
+                                                                >
+                                                                    キャンセル
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                            </div>
                                                 ) : (
                                                     event.description && (
                                                         <div className="text-xs text-gray-400">
-                                                            {event.description}
-                                                        </div>
+                                                    {event.description}
+                                                </div>
                                                     )
                                                 )}
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
                                                     className="btn btn-square btn-ghost btn-sm"
-                                                    onClick={() => handleStartEditEventDescription(event)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleStartEditEventDescription(event);
+                                                    }}
                                                     title="メモを編集"
                                                 >
                                                     <svg
@@ -537,7 +615,10 @@ export const SelectedDayContent = ({
                                                 </button>
                                                 <button 
                                                     className="btn btn-square btn-ghost btn-sm"
-                                                    onClick={() => handleStartEditEventTime(event)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleStartEditEventTime(event);
+                                                    }}
                                                     title="時間を編集"
                                                 >
                                                     <svg
@@ -549,15 +630,15 @@ export const SelectedDayContent = ({
                                                     </svg>
                                                 </button>
                                             </div>
+                                                </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )}
                     </div>
                     <div className="modal-action">
-                        <label 
-                            htmlFor="my_modal_7" 
+                        <label
+                            htmlFor="my_modal_7"
                             className="btn"
                             onClick={() => onClose?.()}
                         >

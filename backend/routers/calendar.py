@@ -51,22 +51,22 @@ async def get_events(db: Session = Depends(get_db)):
         initial_events = [
             CalendarEventModel(
                 title="会議",
-                start=today + timedelta(days=1),
-                end=today + timedelta(days=1),
+                start=today.replace(hour=9, minute=0, second=0, microsecond=0),
+                end=today.replace(hour=11, minute=0, second=0, microsecond=0),
                 description="チーム会議",
                 completed=False
             ),
             CalendarEventModel(
                 title="プロジェクトレビュー",
-                start=today + timedelta(days=2),
-                end=today + timedelta(days=2),
+                start=(today + timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0),
+                end=(today + timedelta(days=1)).replace(hour=16, minute=0, second=0, microsecond=0),
                 description="プロジェクト進捗のレビュー",
                 completed=True
             ),
             CalendarEventModel(
                 title="打ち合わせ",
-                start=today + timedelta(days=3),
-                end=today + timedelta(days=3),
+                start=(today + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0),
+                end=(today + timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0),
                 description="クライアントとの打ち合わせ",
                 completed=False
             )
@@ -79,7 +79,22 @@ async def get_events(db: Session = Depends(get_db)):
         # 再取得
         events = db.query(CalendarEventModel).all()
     
-    return {"events": events}
+    # イベントデータを手動でUTC時間として処理
+    processed_events = []
+    for event in events:
+        event_dict = {
+            "id": event.id,
+            "title": event.title,
+            "start": event.start.isoformat() + 'Z' if event.start.tzinfo is None else event.start.isoformat(),
+            "end": event.end.isoformat() + 'Z' if event.end.tzinfo is None else event.end.isoformat(),
+            "description": event.description,
+            "completed": event.completed,
+            "created_at": event.created_at.isoformat() + 'Z' if event.created_at.tzinfo is None else event.created_at.isoformat(),
+            "updated_at": event.updated_at.isoformat() + 'Z' if event.updated_at.tzinfo is None else event.updated_at.isoformat(),
+        }
+        processed_events.append(event_dict)
+    
+    return {"events": processed_events}
 
 @router.post("/events", response_model=CalendarEventResponse)
 async def create_event(event: CalendarEventCreate, db: Session = Depends(get_db)):
