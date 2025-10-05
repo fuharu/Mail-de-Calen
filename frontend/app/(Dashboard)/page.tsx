@@ -3,19 +3,29 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { RecentlyCalendarList } from "@/components/RecentlyCalendarList/RecentlyCalendarList";
-import { AllCalendar } from "@/components/AllCalendar/AllCalendar";
-import { ToDo } from "@/components/ToDO/ToDo";
+import { RecentlyCalendarList, RecentlyCalendarListRef } from "@/components/RecentlyCalendarList/RecentlyCalendarList";
+import { AllCalendar, AllCalendarRef } from "@/components/AllCalendar/AllCalendar";
+import { ToDo, ToDoRef } from "@/components/ToDO/ToDo";
 import { UserProfile } from "@/components/Auth/UserProfile";
 import { SelectedDayContent } from "@/components/SelectedDay/SelectedDayContent";
 import { useHealthCheck } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 export default function Home() {
     const { user, loading: authLoading } = useAuthContext();
     const router = useRouter();
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const calendarRef = useRef<AllCalendarRef>(null);
+    const todoRef = useRef<ToDoRef>(null);
+    const eventRef = useRef<RecentlyCalendarListRef>(null);
+
+    // データ変更時のコールバック関数
+    const handleDataChange = useCallback(() => {
+        calendarRef.current?.refetch();
+        todoRef.current?.refetch();
+        eventRef.current?.refetch();
+    }, []);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -84,17 +94,18 @@ export default function Home() {
 
             <UserProfile />
 
-            <AllCalendar onDateSelect={setSelectedDate} />
+            <AllCalendar ref={calendarRef} onDateSelect={setSelectedDate} />
 
-            {/* 選択された日のタスクと予定 */}
-            <SelectedDayContent 
-                selectedDate={selectedDate} 
-                onClose={() => setSelectedDate(null)}
-            />
+                   {/* 選択された日のタスクと予定 */}
+                   <SelectedDayContent 
+                       selectedDate={selectedDate} 
+                       onClose={() => setSelectedDate(null)}
+                       onDataChange={handleDataChange}
+                   />
 
             <div className="lg:grid lg:grid-cols-2">
-                <ToDo />
-                <RecentlyCalendarList />
+                <ToDo ref={todoRef} onDataChange={handleDataChange} />
+                <RecentlyCalendarList ref={eventRef} onDataChange={handleDataChange} />
             </div>
         </div>
     );

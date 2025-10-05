@@ -4,9 +4,17 @@ import { useTodos } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 import { apiClient } from "@/lib/api";
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 
-export const ToDo = () => {
+interface ToDoProps {
+    onDataChange?: () => void;
+}
+
+export interface ToDoRef {
+    refetch: () => void;
+}
+
+export const ToDo = forwardRef<ToDoRef, ToDoProps>(({ onDataChange }, ref) => {
     const { user } = useAuthContext();
     const { settings } = useSettings();
     const {
@@ -23,15 +31,21 @@ export const ToDo = () => {
 
     const todosData = todosResp?.todos || [];
 
+    // refetch関数を公開
+    useImperativeHandle(ref, () => ({
+        refetch
+    }));
+
     // タスクの完了状態を切り替え
-    const handleToggleCompletion = async (todoId: string) => {
-        try {
-            await apiClient.toggleTodoCompletion(todoId);
-            refetch(); // データを再取得
-        } catch (error) {
-            console.error("タスクの完了状態切り替えに失敗しました:", error);
-        }
-    };
+   const handleToggleCompletion = async (todoId: string) => {
+       try {
+           await apiClient.toggleTodoCompletion(todoId);
+           refetch(); // データを再取得
+           onDataChange?.(); // カレンダーを更新
+       } catch (error) {
+           console.error("タスクの完了状態切り替えに失敗しました:", error);
+       }
+   };
 
     // メモ編集を開始
     const handleStartEditMemo = (todo: any) => {
@@ -40,45 +54,70 @@ export const ToDo = () => {
         setEditMode('memo');
     };
 
-    // 期限編集を開始
-    const handleStartEditDueDate = (todo: any) => {
-        setEditingTodo(todo.id);
-        setEditingDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 16) : "");
-        setEditMode('dueDate');
-    };
+   // 期限編集を開始
+   const handleStartEditDueDate = (todo: any) => {
+       setEditingTodo(todo.id);
+       if (todo.due_date) {
+           // UTC日付をローカル日付に変換して表示
+           const utcDate = new Date(todo.due_date + 'Z'); // UTCとして解釈
+           const localDate = new Date(utcDate.getTime() - utcDate.getTimezoneOffset() * 60000);
+           setEditingDueDate(localDate.toISOString().slice(0, 10));
+       } else {
+           setEditingDueDate("");
+       }
+       setEditMode('dueDate');
+   };
 
-    // メモ編集を保存
-    const handleSaveMemo = async (todoId: string) => {
-        try {
-            const todo = todos.find(t => t.id === todoId);
-            if (todo) {
-                await apiClient.updateTodo(todoId, {
-                    ...todo,
-                    memo: editingMemo
-                });
-                setEditingTodo(null);
-                setEditingMemo("");
-                setEditMode(null);
-                refetch(); // データを再取得
-            }
-        } catch (error) {
-            console.error("メモの保存に失敗しました:", error);
-        }
-    };
+   // メモ編集を保存
+   const handleSaveMemo = async (todoId: string) => {
+       try {
+           console.log("メモ保存デバッグ:", { todoId, todosData, editingMemo });
+           const todo = todosData.find(t => t.id === parseInt(todoId));
+           console.log("見つかったタスク:", todo);
+           if (todo) {
+               await apiClient.updateTodo(todoId, {
+                   ...todo,
+                   memo: editingMemo
+               });
+               setEditingTodo(null);
+               setEditingMemo("");
+               setEditMode(null);
+               refetch(); // データを再取得
+               onDataChange?.(); // カレンダーを更新
+           } else {
+               console.error("タスクが見つかりません:", todoId);
+           }
+       } catch (error) {
+           console.error("メモの保存に失敗しました:", error);
+       }
+   };
 
     // 期限編集を保存
     const handleSaveDueDate = async (todoId: string) => {
         try {
-            const todo = todos.find(t => t.id === todoId);
+            console.log("期限保存デバッグ:", { todoId, todosData, editingDueDate });
+            const todo = todosData.find(t => t.id === parseInt(todoId));
+            console.log("見つかったタスク:", todo);
             if (todo) {
+                // 日付のみを設定（UTCで00:00:00に設定してタイムゾーン問題を回避）
+                let dueDate = null;
+                if (editingDueDate) {
+                    // 入力された日付をUTCの00:00:00として設定
+                    const [year, month, day] = editingDueDate.split('-');
+                    dueDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)).toISOString();
+                }
+                console.log("保存する期限:", dueDate);
                 await apiClient.updateTodo(todoId, {
                     ...todo,
-                    due_date: editingDueDate ? new Date(editingDueDate).toISOString() : null
+                    due_date: dueDate
                 });
                 setEditingTodo(null);
                 setEditingDueDate("");
                 setEditMode(null);
                 refetch(); // データを再取得
+                onDataChange?.(); // カレンダーを更新
+            } else {
+                console.error("タスクが見つかりません:", todoId);
             }
         } catch (error) {
             console.error("期限の保存に失敗しました:", error);
@@ -165,7 +204,7 @@ export const ToDo = () => {
                                 {editingTodo === todo.id && editMode === 'dueDate' ? (
                                     <div className="mt-2">
                                         <input
-                                            type="datetime-local"
+                                            type="date"
                                             value={editingDueDate}
                                             onChange={(e) => setEditingDueDate(e.target.value)}
                                             className="input input-sm w-full"
@@ -259,6 +298,6 @@ export const ToDo = () => {
                     ))
                 )}
             </ul>
-        </div>
-    );
-};
+            </div>
+        );
+    });

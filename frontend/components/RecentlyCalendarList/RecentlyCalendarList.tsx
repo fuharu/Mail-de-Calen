@@ -4,9 +4,17 @@ import { useEvents } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 import { apiClient } from "@/lib/api";
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 
-export const RecentlyCalendarList = () => {
+interface RecentlyCalendarListProps {
+    onDataChange?: () => void;
+}
+
+export interface RecentlyCalendarListRef {
+    refetch: () => void;
+}
+
+export const RecentlyCalendarList = forwardRef<RecentlyCalendarListRef, RecentlyCalendarListProps>(({ onDataChange }, ref) => {
     const { user } = useAuthContext();
     const { settings } = useSettings();
     const {
@@ -25,15 +33,21 @@ export const RecentlyCalendarList = () => {
     // apiClient returns { events: [...] }
     const eventsData = eventsResp?.events || [];
 
+    // refetch関数を公開
+    useImperativeHandle(ref, () => ({
+        refetch
+    }));
+
     // 予定の完了状態を切り替え
-    const handleToggleCompletion = async (eventId: string) => {
-        try {
-            await apiClient.toggleEventCompletion(eventId);
-            refetch(); // データを再取得
-        } catch (error) {
-            console.error("予定の完了状態切り替えに失敗しました:", error);
-        }
-    };
+   const handleToggleCompletion = async (eventId: string) => {
+       try {
+           await apiClient.toggleEventCompletion(eventId);
+           refetch(); // データを再取得
+           onDataChange?.(); // カレンダーを更新
+       } catch (error) {
+           console.error("予定の完了状態切り替えに失敗しました:", error);
+       }
+   };
 
     // メモ編集を開始
     const handleStartEditDescription = (event: any) => {
@@ -45,45 +59,64 @@ export const RecentlyCalendarList = () => {
     // 時間編集を開始
     const handleStartEditTime = (event: any) => {
         setEditingEvent(event.id);
-        setEditingStartTime(new Date(event.start).toISOString().slice(0, 16));
-        setEditingEndTime(new Date(event.end).toISOString().slice(0, 16));
+        // UTC日付をローカル日付に変換して表示
+        const startUtcDate = new Date(event.start + 'Z'); // UTCとして解釈
+        const endUtcDate = new Date(event.end + 'Z'); // UTCとして解釈
+        const startLocalDate = new Date(startUtcDate.getTime() - startUtcDate.getTimezoneOffset() * 60000);
+        const endLocalDate = new Date(endUtcDate.getTime() - endUtcDate.getTimezoneOffset() * 60000);
+        setEditingStartTime(startLocalDate.toISOString().slice(0, 16));
+        setEditingEndTime(endLocalDate.toISOString().slice(0, 16));
         setEditMode('time');
     };
 
-    // メモ編集を保存
-    const handleSaveDescription = async (eventId: string) => {
-        try {
-            const event = events.find(e => e.id === eventId);
-            if (event) {
-                await apiClient.updateEvent(eventId, {
-                    ...event,
-                    description: editingDescription
-                });
-                setEditingEvent(null);
-                setEditingDescription("");
-                setEditMode(null);
-                refetch(); // データを再取得
-            }
-        } catch (error) {
-            console.error("メモの保存に失敗しました:", error);
-        }
-    };
+   // メモ編集を保存
+   const handleSaveDescription = async (eventId: string) => {
+       try {
+           console.log("予定メモ保存デバッグ:", { eventId, eventsData, editingDescription });
+           const event = eventsData.find(e => e.id === parseInt(eventId));
+           console.log("見つかった予定:", event);
+           if (event) {
+               await apiClient.updateEvent(eventId, {
+                   ...event,
+                   description: editingDescription
+               });
+               setEditingEvent(null);
+               setEditingDescription("");
+               setEditMode(null);
+               refetch(); // データを再取得
+               onDataChange?.(); // カレンダーを更新
+           } else {
+               console.error("予定が見つかりません:", eventId);
+           }
+       } catch (error) {
+           console.error("メモの保存に失敗しました:", error);
+       }
+   };
 
     // 時間編集を保存
     const handleSaveTime = async (eventId: string) => {
         try {
-            const event = events.find(e => e.id === eventId);
+            console.log("予定時間保存デバッグ:", { eventId, eventsData, editingStartTime, editingEndTime });
+            const event = eventsData.find(e => e.id === parseInt(eventId));
+            console.log("見つかった予定:", event);
             if (event) {
+                // ローカル時間をUTCに変換して保存
+                const startTime = new Date(editingStartTime).toISOString();
+                const endTime = new Date(editingEndTime).toISOString();
+                console.log("保存する時間:", { startTime, endTime });
                 await apiClient.updateEvent(eventId, {
                     ...event,
-                    start: new Date(editingStartTime).toISOString(),
-                    end: new Date(editingEndTime).toISOString()
+                    start: startTime,
+                    end: endTime
                 });
                 setEditingEvent(null);
                 setEditingStartTime("");
                 setEditingEndTime("");
                 setEditMode(null);
                 refetch(); // データを再取得
+                onDataChange?.(); // カレンダーを更新
+            } else {
+                console.error("予定が見つかりません:", eventId);
             }
         } catch (error) {
             console.error("時間の保存に失敗しました:", error);
@@ -202,21 +235,27 @@ export const RecentlyCalendarList = () => {
                                     </div>
                                 ) : (
                                     <div className="text-xs uppercase font-semibold opacity-60">
-                                        {new Date(event.start).toLocaleTimeString(
-                                            "ja-JP",
-                                            {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }
-                                        )}{" "}
-                                        -{" "}
-                                        {new Date(event.end).toLocaleTimeString(
-                                            "ja-JP",
-                                            {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }
-                                        )}
+                                        {(() => {
+                                            // UTC時間をローカル時間に変換
+                                            const startUtc = new Date(event.start + 'Z');
+                                            const endUtc = new Date(event.end + 'Z');
+                                            const startLocal = new Date(startUtc.getTime() - startUtc.getTimezoneOffset() * 60000);
+                                            const endLocal = new Date(endUtc.getTime() - endUtc.getTimezoneOffset() * 60000);
+                                            
+                                            return `${startLocal.toLocaleDateString("ja-JP")} ${startLocal.toLocaleTimeString(
+                                                "ja-JP",
+                                                {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                }
+                                            )} - ${endLocal.toLocaleTimeString(
+                                                "ja-JP",
+                                                {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                }
+                                            )}`;
+                                        })()}
                                     </div>
                                 )}
                                 {editingEvent === event.id && editMode === 'description' ? (
@@ -285,4 +324,4 @@ export const RecentlyCalendarList = () => {
             </ul>
         </div>
     );
-};
+});

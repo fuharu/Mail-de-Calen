@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { useEvents, useTodos } from "@/hooks/useApi";
 
 interface AllCalendarProps {
     onDateSelect?: (date: Date | null) => void;
 }
 
-export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
-    const { data: eventsData, loading, error, refetch } = useEvents();
-    const { data: todosData } = useTodos();
+export interface AllCalendarRef {
+    refetch: () => void;
+}
+
+export const AllCalendar = forwardRef<AllCalendarRef, AllCalendarProps>(({ onDateSelect }, ref) => {
+    const { data: eventsData, loading, error, refetch: refetchEvents } = useEvents();
+    const { data: todosData, refetch: refetchTodos } = useTodos();
+    
+    const refetch = () => {
+        refetchEvents();
+        refetchTodos();
+    };
+    
+    useImperativeHandle(ref, () => ({
+        refetch
+    }));
     const events = eventsData?.events || [];
     const todos = todosData?.todos || [];
 
@@ -321,4 +334,4 @@ export const AllCalendar = ({ onDateSelect }: AllCalendarProps) => {
             </div>
         </div>
     );
-};
+});
