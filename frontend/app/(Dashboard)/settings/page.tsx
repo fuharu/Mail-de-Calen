@@ -1,34 +1,43 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useSettings } from '@/hooks/useSettings';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useSettings } from "@/hooks/useSettings";
+import Image from "next/image";
 
 export default function SettingsPage() {
     const { user, loading: authLoading } = useAuthContext();
-    const { settings, loading: settingsLoading, error: settingsError, updateSettings } = useSettings();
+    const {
+        settings,
+        loading: settingsLoading,
+        error: settingsError,
+        updateSettings,
+    } = useSettings();
     const router = useRouter();
-    const [newKeyword, setNewKeyword] = useState('');
+    const [newKeyword, setNewKeyword] = useState("");
 
     const handleAddKeyword = () => {
-        if (newKeyword.trim() && !settings.keywords.includes(newKeyword.trim())) {
+        if (
+            newKeyword.trim() &&
+            !settings.keywords.includes(newKeyword.trim())
+        ) {
             updateSettings({
-                keywords: [...settings.keywords, newKeyword.trim()]
+                keywords: [...settings.keywords, newKeyword.trim()],
             });
-            setNewKeyword('');
+            setNewKeyword("");
         }
     };
 
     const handleRemoveKeyword = (keyword: string) => {
         updateSettings({
-            keywords: settings.keywords.filter(k => k !== keyword)
+            keywords: settings.keywords.filter((k) => k !== keyword),
         });
     };
 
     const handleSaveSettings = () => {
         // 設定は自動的に保存されるため、成功メッセージのみ表示
-        alert('設定を保存しました');
+        alert("設定を保存しました");
     };
 
     if (authLoading || settingsLoading) {
@@ -43,22 +52,59 @@ export default function SettingsPage() {
     }
 
     if (!user) {
-        router.push('/login');
+        router.push("/login");
         return null;
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <div className="max-w-4xl mx-auto">
+        <div className="pb-20 bg-gray-50 min-h-screen">
+            {/* ヘッダー */}
+            <div className="navbar bg-base-100 shadow-sm lg:hidden">
+                <div className="flex-1">
+                    <div className="text-xl font-bold">
+                        <Image
+                            src="/logo_main.png"
+                            alt="Mail de Calen"
+                            width={150}
+                            height={32}
+                            className="inline-block mr-2"
+                            style={{ width: "auto", height: "auto" }}
+                            priority
+                        />
+                    </div>
+                </div>
+                <div className="flex-none">
+                    <button className="btn btn-square btn-ghost">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            className="inline-block h-5 w-5 stroke-current"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div className="p-6">
+                <div className="max-w-4xl mx-auto">
                 <h1 className="text-2xl font-bold text-gray-800 mb-6">設定</h1>
 
                 {/* キーワード設定 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">キーワード設定</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        キーワード設定
+                    </h2>
                     <p className="text-sm text-gray-600 mb-4">
                         メール解析でイベントやタスクを検出するためのキーワードを設定できます。
                     </p>
-                    
+
                     <div className="flex gap-2 mb-4">
                         <input
                             type="text"
@@ -66,7 +112,9 @@ export default function SettingsPage() {
                             onChange={(e) => setNewKeyword(e.target.value)}
                             placeholder="新しいキーワードを入力"
                             className="input input-bordered flex-1"
-                            onKeyPress={(e) => e.key === 'Enter' && handleAddKeyword()}
+                            onKeyPress={(e) =>
+                                e.key === "Enter" && handleAddKeyword()
+                            }
                         />
                         <button
                             onClick={handleAddKeyword}
@@ -96,19 +144,25 @@ export default function SettingsPage() {
 
                 {/* 外部カレンダー連携 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">外部カレンダー連携</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        外部カレンダー連携
+                    </h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="font-medium">Google Calendar</h3>
-                                <p className="text-sm text-gray-600">Google Calendarと連携して予定を同期します</p>
+                                <p className="text-sm text-gray-600">
+                                    Google Calendarと連携して予定を同期します
+                                </p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={settings.calendarIntegration}
-                                onChange={(e) => updateSettings({
-                                    calendarIntegration: e.target.checked
-                                })}
+                                onChange={(e) =>
+                                    updateSettings({
+                                        calendarIntegration: e.target.checked,
+                                    })
+                                }
                                 className="toggle toggle-primary"
                             />
                         </div>
@@ -117,19 +171,25 @@ export default function SettingsPage() {
 
                 {/* メール連携 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">メール連携</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        メール連携
+                    </h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="font-medium">Gmail連携</h3>
-                                <p className="text-sm text-gray-600">Gmailからメールを自動取得して解析します</p>
+                                <p className="text-sm text-gray-600">
+                                    Gmailからメールを自動取得して解析します
+                                </p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={settings.emailIntegration}
-                                onChange={(e) => updateSettings({
-                                    emailIntegration: e.target.checked
-                                })}
+                                onChange={(e) =>
+                                    updateSettings({
+                                        emailIntegration: e.target.checked,
+                                    })
+                                }
                                 className="toggle toggle-primary"
                             />
                         </div>
@@ -138,19 +198,27 @@ export default function SettingsPage() {
 
                 {/* 通知設定 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">通知設定</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        通知設定
+                    </h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-medium">通知を有効にする</h3>
-                                <p className="text-sm text-gray-600">新しいイベントやタスクが見つかった時に通知します</p>
+                                <h3 className="font-medium">
+                                    通知を有効にする
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                    新しいイベントやタスクが見つかった時に通知します
+                                </p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={settings.notificationEnabled}
-                                onChange={(e) => updateSettings({
-                                    notificationEnabled: e.target.checked
-                                })}
+                                onChange={(e) =>
+                                    updateSettings({
+                                        notificationEnabled: e.target.checked,
+                                    })
+                                }
                                 className="toggle toggle-primary"
                             />
                         </div>
@@ -159,19 +227,27 @@ export default function SettingsPage() {
 
                 {/* 自動保存設定 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">自動保存設定</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        自動保存設定
+                    </h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-medium">自動保存を有効にする</h3>
-                                <p className="text-sm text-gray-600">解析結果を自動的に候補として保存します</p>
+                                <h3 className="font-medium">
+                                    自動保存を有効にする
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                    解析結果を自動的に候補として保存します
+                                </p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={settings.autoSave}
-                                onChange={(e) => updateSettings({
-                                    autoSave: e.target.checked
-                                })}
+                                onChange={(e) =>
+                                    updateSettings({
+                                        autoSave: e.target.checked,
+                                    })
+                                }
                                 className="toggle toggle-primary"
                             />
                         </div>
@@ -180,7 +256,9 @@ export default function SettingsPage() {
 
                 {/* 表示設定 */}
                 <div className="bg-base-100 rounded-box shadow-md p-6 mb-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">表示設定</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        表示設定
+                    </h2>
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -192,9 +270,13 @@ export default function SettingsPage() {
                                     min="3"
                                     max="30"
                                     value={settings.recentDays}
-                                    onChange={(e) => updateSettings({
-                                        recentDays: parseInt(e.target.value)
-                                    })}
+                                    onChange={(e) =>
+                                        updateSettings({
+                                            recentDays: parseInt(
+                                                e.target.value
+                                            ),
+                                        })
+                                    }
                                     className="range range-primary flex-1"
                                 />
                                 <div className="text-lg font-semibold min-w-[3rem] text-center">
@@ -222,6 +304,7 @@ export default function SettingsPage() {
                     >
                         設定を保存
                     </button>
+                </div>
                 </div>
             </div>
         </div>
