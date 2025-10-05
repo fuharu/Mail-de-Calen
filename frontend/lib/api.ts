@@ -92,7 +92,7 @@ export const apiClient = {
 
   // メール関連
   async getRecentEmails(limit = 10): Promise<{ emails: Email[] }> {
-    return apiRequest<{ emails: Email[] }>(`${API_BASE_URL}/api/email/recent?limit=${limit}`, undefined, true);
+    return apiRequest<{ emails: Email[] }>(`${API_BASE_URL}/api/email/recent?limit=${limit}`, undefined, false); // 一時的に認証を無効化
   },
 
   // カレンダー関連
@@ -117,5 +117,59 @@ export const apiClient = {
       method: 'POST',
       body: JSON.stringify(todo),
     }, true);
+  },
+
+  // メール解析関連
+  async analyzeEmail(emailId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/analyze`, {
+      method: 'POST',
+      body: JSON.stringify({ email_id: emailId }),
+    }, false); // 一時的に認証を無効化
+  },
+
+  async analyzeRecentEmails(limit = 10) {
+    return apiRequest(`${API_BASE_URL}/api/email/analyze-recent`, {
+      method: 'POST',
+      body: JSON.stringify({ limit }),
+    }, false); // 一時的に認証を無効化
+  },
+
+  async getAnalysisHistory(limit = 20) {
+    return apiRequest<{ history: any[] }>(`${API_BASE_URL}/api/email/analysis-history?limit=${limit}`, undefined, false); // 一時的に認証を無効化
+  },
+
+  async deleteAnalysisHistory(emailId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/analysis-history/${emailId}`, {
+      method: 'DELETE',
+    }, false); // 一時的に認証を無効化
+  },
+
+  // 承認・却下関連
+  async approveEvent(eventId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/approve-event`, {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId }),
+    }, false); // 一時的に認証を無効化
+  },
+
+  async approveTodo(todoId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/approve-todo`, {
+      method: 'POST',
+      body: JSON.stringify({ todo_id: todoId }),
+    }, false); // 一時的に認証を無効化
+  },
+
+  async rejectEvent(eventId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/reject-event`, {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId }),
+    }, false); // 一時的に認証を無効化
+  },
+
+  async rejectTodo(todoId: string) {
+    return apiRequest(`${API_BASE_URL}/api/email/reject-todo`, {
+      method: 'POST',
+      body: JSON.stringify({ todo_id: todoId }),
+    }, false); // 一時的に認証を無効化
   },
 };

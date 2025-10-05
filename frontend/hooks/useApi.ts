@@ -67,8 +67,13 @@ export function useApi<T>(
 }
 
 // メール取得用フック
-export function useEmails(limit = 10) {
-  return useApi(() => apiClient.getRecentEmails(limit), [limit]);
+export function useEmails(limit = 5) {
+  return useApi(() => apiClient.getRecentEmails(limit), []); // 依存配列を空にして一度だけ実行
+}
+
+// メール解析履歴取得用フック
+export function useAnalysisHistory(limit = 20) {
+  return useApi(() => apiClient.getAnalysisHistory(limit), [limit]);
 }
 
 // カレンダーイベント取得用フック

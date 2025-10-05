@@ -1,13 +1,13 @@
 'use client';
 
-import { useApprovedTodos } from "@/hooks/useFirestore";
+import { useTodos } from "@/hooks/useFirestore";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
 
 export const ToDo = () => {
     const { user } = useAuthContext();
     const { settings } = useSettings();
-    const { data: todosData, loading, error, refetch } = useApprovedTodos(user?.uid);
+    const { data: todosData, loading, error, refetch } = useTodos(user?.email || undefined);
     
     // 設定された日数以内のタスクのみをフィルタリング
     const todos = todosData?.filter(todo => {

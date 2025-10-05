@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   User, 
-  signInWithPopup, 
+  signInWithPopup,
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider 
@@ -39,11 +39,10 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
+      // ポップアップ認証を使用（リダイレクト認証の代替）
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      console.log('Google認証成功:', result.user);
       
-      console.log('Google認証成功:', user);
-      return user;
     } catch (error: any) {
       const errorMessage = error.message || 'Google認証に失敗しました';
       setAuthState(prev => ({ ...prev, error: errorMessage, loading: false }));

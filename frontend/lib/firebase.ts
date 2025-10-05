@@ -13,6 +13,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// 設定確認用（開発時のみ）
+console.log('Firebase設定確認:', firebaseConfig);
+
 // Firebaseアプリを初期化
 const app = initializeApp(firebaseConfig);
 

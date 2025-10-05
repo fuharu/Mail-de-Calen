@@ -3,9 +3,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials
 
 # 環境変数の読み込み
 load_dotenv()
+
+# Firebase Admin SDK の初期化
+def initialize_firebase():
+    """Firebase Admin SDKを初期化"""
+    try:
+        if not firebase_admin._apps:
+            cred_path = "credentials/firebase-service-account.json"
+            if os.path.exists(cred_path):
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK 初期化成功")
+            else:
+                print("警告: Firebase サービスアカウントキーが見つかりません")
+    except Exception as e:
+        print(f"Firebase初期化エラー: {e}")
+
+# Firebase を初期化
+initialize_firebase()
 
 # ルーターのインポート
 from routers import auth, email, calendar, todos, candidates, oauth, polling

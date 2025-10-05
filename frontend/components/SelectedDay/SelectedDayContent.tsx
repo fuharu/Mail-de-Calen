@@ -1,19 +1,20 @@
 'use client';
 
-import { useEvents, useTodos } from "@/hooks/useApi";
-import { useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+import { useEvents, useTodos, useEventCandidates, useTodoCandidates } from "@/hooks/useFirestore";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface SelectedDayContentProps {
     selectedDate: Date | null;
 }
 
 export const SelectedDayContent = ({ selectedDate }: SelectedDayContentProps) => {
-    const { data: eventsData, loading: eventsLoading, error: eventsError } = useEvents();
-    const { data: todosData, loading: todosLoading, error: todosError } = useTodos();
+    const { user } = useAuthContext();
+    const { data: eventsData, loading: eventsLoading, error: eventsError } = useEvents(user?.email || undefined);
+    const { data: todosData, loading: todosLoading, error: todosError } = useTodos(user?.email || undefined);
     
     // Firestoreから候補データを取得
-    const { data: eventCandidates } = useEventCandidates();
-    const { data: todoCandidates } = useTodoCandidates();
+    const { data: eventCandidates } = useEventCandidates(user?.email || undefined);
+    const { data: todoCandidates } = useTodoCandidates(user?.email || undefined);
 
     if (!selectedDate) {
         return (
@@ -37,13 +38,13 @@ export const SelectedDayContent = ({ selectedDate }: SelectedDayContentProps) =>
     const selectedDateString = selectedDate.toDateString();
     
     // その日のイベントをフィルタ
-    const dayEvents = eventsData?.events?.filter(event => {
+    const dayEvents = eventsData?.filter(event => {
         const eventDate = new Date(event.start);
         return eventDate.toDateString() === selectedDateString;
     }) || [];
 
     // その日のToDoをフィルタ（期限がその日のもの）
-    const dayTodos = todosData?.todos?.filter(todo => {
+    const dayTodos = todosData?.filter(todo => {
         if (!todo.due_date) return false;
         const dueDate = new Date(todo.due_date);
         return dueDate.toDateString() === selectedDateString;

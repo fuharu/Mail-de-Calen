@@ -17,14 +17,14 @@ export const FirebaseDataViewer = () => {
     loading: eventsLoading, 
     error: eventsError,
     refetch: refetchEvents
-  } = useEventCandidates(user?.uid);
+  } = useEventCandidates(user?.email || undefined);
   
   const { 
     data: todoCandidates, 
     loading: todosLoading, 
     error: todosError,
     refetch: refetchTodos
-  } = useTodoCandidates(user?.uid);
+  } = useTodoCandidates(user?.email || undefined);
   
   // ユーザー一覧は削除
 

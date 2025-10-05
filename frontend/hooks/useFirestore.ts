@@ -236,3 +236,21 @@ export function useApprovedTodos(userId?: string) {
     
   return useFirestore<TodoCandidate>('todo_candidates', queryConstraints);
 }
+
+// todos コレクションからデータを取得するフック
+export function useTodos(userId?: string) {
+  const queryConstraints = userId 
+    ? [where('user_id', '==', userId)]
+    : [];
+    
+  return useFirestore<TodoCandidate>('todos', queryConstraints);
+}
+
+// events コレクションからデータを取得するフック
+export function useEvents(userId?: string) {
+  const queryConstraints = userId 
+    ? [where('user_id', '==', userId)]
+    : [];
+    
+  return useFirestore<EventCandidate>('events', queryConstraints);
+}
