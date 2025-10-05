@@ -1,50 +1,118 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.orm import Session
+from database import get_db, create_tables
+from models import CalendarEvent as CalendarEventModel
 
 router = APIRouter()
 
-class CalendarEvent(BaseModel):
-    id: str
+# データベーステーブルを作成
+create_tables()
+
+class CalendarEventCreate(BaseModel):
     title: str
     start: datetime
     end: datetime
     description: Optional[str] = None
+    completed: bool = False
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = None
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = None
+
+class CalendarEventResponse(BaseModel):
+    id: int
+    title: str
+    start: datetime
+    end: datetime
+    description: Optional[str] = None
+    completed: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 @router.get("/events")
-async def get_events():
+async def get_events(db: Session = Depends(get_db)):
     """カレンダーイベントを取得"""
-    # モックデータ（現在の日付に合わせて更新）
-    from datetime import datetime, timedelta
-    today = datetime.now()
+    events = db.query(CalendarEventModel).all()
     
-    mock_events = [
-        {
-            "id": "event_1",
-            "title": "会議",
-            "start": (today + timedelta(days=1)).strftime("%Y-%m-%dT10:00:00Z"),
-            "end": (today + timedelta(days=1)).strftime("%Y-%m-%dT11:00:00Z"),
-            "description": "チーム会議"
-        },
-        {
-            "id": "event_2",
-            "title": "プロジェクトレビュー", 
-            "start": (today + timedelta(days=2)).strftime("%Y-%m-%dT14:00:00Z"),
-            "end": (today + timedelta(days=2)).strftime("%Y-%m-%dT15:00:00Z"),
-            "description": "プロジェクト進捗のレビュー"
-        },
-        {
-            "id": "event_3",
-            "title": "打ち合わせ",
-            "start": (today + timedelta(days=3)).strftime("%Y-%m-%dT09:00:00Z"),
-            "end": (today + timedelta(days=3)).strftime("%Y-%m-%dT10:00:00Z"),
-            "description": "クライアントとの打ち合わせ"
-        }
-    ]
-    return {"events": mock_events}
+    # データベースが空の場合は初期データを作成
+    if not events:
+        from datetime import datetime, timedelta
+        today = datetime.now()
+        
+        initial_events = [
+            CalendarEventModel(
+                title="会議",
+                start=today + timedelta(days=1),
+                end=today + timedelta(days=1),
+                description="チーム会議",
+                completed=False
+            ),
+            CalendarEventModel(
+                title="プロジェクトレビュー",
+                start=today + timedelta(days=2),
+                end=today + timedelta(days=2),
+                description="プロジェクト進捗のレビュー",
+                completed=True
+            ),
+            CalendarEventModel(
+                title="打ち合わせ",
+                start=today + timedelta(days=3),
+                end=today + timedelta(days=3),
+                description="クライアントとの打ち合わせ",
+                completed=False
+            )
+        ]
+        
+        for event in initial_events:
+            db.add(event)
+        db.commit()
+        
+        # 再取得
+        events = db.query(CalendarEventModel).all()
+    
+    return {"events": events}
 
-@router.post("/events")
-async def create_event(event: CalendarEvent):
+@router.post("/events", response_model=CalendarEventResponse)
+async def create_event(event: CalendarEventCreate, db: Session = Depends(get_db)):
     """新しいイベントを作成"""
-    return {"message": "Event created", "event": event}
+    db_event = CalendarEventModel(**event.dict())
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@router.put("/events/{event_id}", response_model=CalendarEventResponse)
+async def update_event(event_id: int, event: CalendarEventUpdate, db: Session = Depends(get_db)):
+    """イベントを更新"""
+    db_event = db.query(CalendarEventModel).filter(CalendarEventModel.id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    update_data = event.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_event, field, value)
+    
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@router.patch("/events/{event_id}/toggle", response_model=CalendarEventResponse)
+async def toggle_event_completion(event_id: int, db: Session = Depends(get_db)):
+    """イベントの完了状態を切り替え"""
+    db_event = db.query(CalendarEventModel).filter(CalendarEventModel.id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    db_event.completed = not db_event.completed
+    db.commit()
+    db.refresh(db_event)
+    return db_event

@@ -3,6 +3,8 @@
 import { useEvents } from "@/hooks/useApi";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/useSettings";
+import { apiClient } from "@/lib/api";
+import { useState } from "react";
 
 export const RecentlyCalendarList = () => {
     const { user } = useAuthContext();
@@ -13,9 +15,89 @@ export const RecentlyCalendarList = () => {
         error,
         refetch,
     } = useEvents();
+    
+    const [editingEvent, setEditingEvent] = useState<string | null>(null);
+    const [editingDescription, setEditingDescription] = useState<string>("");
+    const [editingStartTime, setEditingStartTime] = useState<string>("");
+    const [editingEndTime, setEditingEndTime] = useState<string>("");
+    const [editMode, setEditMode] = useState<'description' | 'time' | null>(null);
 
     // apiClient returns { events: [...] }
     const eventsData = eventsResp?.events || [];
+
+    // 予定の完了状態を切り替え
+    const handleToggleCompletion = async (eventId: string) => {
+        try {
+            await apiClient.toggleEventCompletion(eventId);
+            refetch(); // データを再取得
+        } catch (error) {
+            console.error("予定の完了状態切り替えに失敗しました:", error);
+        }
+    };
+
+    // メモ編集を開始
+    const handleStartEditDescription = (event: any) => {
+        setEditingEvent(event.id);
+        setEditingDescription(event.description || "");
+        setEditMode('description');
+    };
+
+    // 時間編集を開始
+    const handleStartEditTime = (event: any) => {
+        setEditingEvent(event.id);
+        setEditingStartTime(new Date(event.start).toISOString().slice(0, 16));
+        setEditingEndTime(new Date(event.end).toISOString().slice(0, 16));
+        setEditMode('time');
+    };
+
+    // メモ編集を保存
+    const handleSaveDescription = async (eventId: string) => {
+        try {
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+                await apiClient.updateEvent(eventId, {
+                    ...event,
+                    description: editingDescription
+                });
+                setEditingEvent(null);
+                setEditingDescription("");
+                setEditMode(null);
+                refetch(); // データを再取得
+            }
+        } catch (error) {
+            console.error("メモの保存に失敗しました:", error);
+        }
+    };
+
+    // 時間編集を保存
+    const handleSaveTime = async (eventId: string) => {
+        try {
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+                await apiClient.updateEvent(eventId, {
+                    ...event,
+                    start: new Date(editingStartTime).toISOString(),
+                    end: new Date(editingEndTime).toISOString()
+                });
+                setEditingEvent(null);
+                setEditingStartTime("");
+                setEditingEndTime("");
+                setEditMode(null);
+                refetch(); // データを再取得
+            }
+        } catch (error) {
+            console.error("時間の保存に失敗しました:", error);
+        }
+    };
+
+    // 編集をキャンセル
+    const handleCancelEdit = () => {
+        setEditingEvent(null);
+        setEditingDescription("");
+        setEditingStartTime("");
+        setEditingEndTime("");
+        setEditMode(null);
+    };
 
     // 設定された日数以内のイベントのみをフィルタリング
     const events =
@@ -73,50 +155,130 @@ export const RecentlyCalendarList = () => {
                             key={event.id}
                             className="list-row"
                         >
-                            <div></div>
                             <div>
-                                <div>{event.title}</div>
-                                <div className="text-xs uppercase font-semibold opacity-60">
-                                    {new Date(event.start).toLocaleTimeString(
-                                        "ja-JP",
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        }
-                                    )}{" "}
-                                    -{" "}
-                                    {new Date(event.end).toLocaleTimeString(
-                                        "ja-JP",
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        }
-                                    )}
+                                <input
+                                    type="checkbox"
+                                    checked={event.completed}
+                                    className="checkbox checkbox-sm"
+                                    onChange={() => handleToggleCompletion(event.id)}
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <div className={`${event.completed ? 'line-through opacity-60' : ''}`}>
+                                    {event.title}
                                 </div>
-                                {event.description && (
-                                    <div className="text-xs text-gray-400">
-                                        {event.description}
+                                {editingEvent === event.id && editMode === 'time' ? (
+                                    <div className="mt-2">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="datetime-local"
+                                                value={editingStartTime}
+                                                onChange={(e) => setEditingStartTime(e.target.value)}
+                                                className="input input-sm flex-1"
+                                                placeholder="開始時間"
+                                            />
+                                            <input
+                                                type="datetime-local"
+                                                value={editingEndTime}
+                                                onChange={(e) => setEditingEndTime(e.target.value)}
+                                                className="input input-sm flex-1"
+                                                placeholder="終了時間"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 mt-1">
+                                            <button
+                                                className="btn btn-xs btn-primary"
+                                                onClick={() => handleSaveTime(event.id)}
+                                            >
+                                                保存
+                                            </button>
+                                            <button
+                                                className="btn btn-xs btn-ghost"
+                                                onClick={handleCancelEdit}
+                                            >
+                                                キャンセル
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs uppercase font-semibold opacity-60">
+                                        {new Date(event.start).toLocaleTimeString(
+                                            "ja-JP",
+                                            {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            }
+                                        )}{" "}
+                                        -{" "}
+                                        {new Date(event.end).toLocaleTimeString(
+                                            "ja-JP",
+                                            {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            }
+                                        )}
                                     </div>
                                 )}
+                                {editingEvent === event.id && editMode === 'description' ? (
+                                    <div className="mt-2">
+                                        <textarea
+                                            value={editingDescription}
+                                            onChange={(e) => setEditingDescription(e.target.value)}
+                                            className="textarea textarea-sm w-full"
+                                            placeholder="メモを入力..."
+                                            rows={2}
+                                        />
+                                        <div className="flex gap-2 mt-1">
+                                            <button
+                                                className="btn btn-xs btn-primary"
+                                                onClick={() => handleSaveDescription(event.id)}
+                                            >
+                                                保存
+                                            </button>
+                                            <button
+                                                className="btn btn-xs btn-ghost"
+                                                onClick={handleCancelEdit}
+                                            >
+                                                キャンセル
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    event.description && (
+                                        <div className="text-xs text-gray-400">
+                                            {event.description}
+                                        </div>
+                                    )
+                                )}
                             </div>
-                            <button className="btn btn-square btn-ghost">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 640 640"
-                                    className="size-[1.2em]"
+                            <div className="flex gap-1">
+                                <button 
+                                    className="btn btn-square btn-ghost btn-sm"
+                                    onClick={() => handleStartEditDescription(event)}
+                                    title="メモを編集"
                                 >
-                                    <path d="M256.1 312C322.4 312 376.1 258.3 376.1 192C376.1 125.7 322.4 72 256.1 72C189.8 72 136.1 125.7 136.1 192C136.1 258.3 189.8 312 256.1 312zM226.4 368C127.9 368 48.1 447.8 48.1 546.3C48.1 562.7 61.4 576 77.8 576L274.3 576L285.2 521.5C289.5 499.8 300.2 479.9 315.8 464.3L383.1 397C355.1 378.7 321.7 368.1 285.7 368.1L226.3 368.1zM332.3 530.9L320.4 590.5C320.2 591.4 320.1 592.4 320.1 593.4C320.1 601.4 326.6 608 334.7 608C335.7 608 336.6 607.9 337.6 607.7L397.2 595.8C409.6 593.3 421 587.2 429.9 578.3L548.8 459.4L468.8 379.4L349.9 498.3C341 507.2 334.9 518.6 332.4 531zM600.1 407.9C622.2 385.8 622.2 350 600.1 327.9C578 305.8 542.2 305.8 520.1 327.9L491.3 356.7L571.3 436.7L600.1 407.9z" />
-                                </svg>
-                            </button>
-                            <button className="btn btn-square btn-ghost">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 640 640"
-                                    className="size-[1.2em]"
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 640 640"
+                                        className="size-[1em]"
+                                    >
+                                        <path d="M256.1 312C322.4 312 376.1 258.3 376.1 192C376.1 125.7 322.4 72 256.1 72C189.8 72 136.1 125.7 136.1 192C136.1 258.3 189.8 312 256.1 312zM226.4 368C127.9 368 48.1 447.8 48.1 546.3C48.1 562.7 61.4 576 77.8 576L274.3 576L285.2 521.5C289.5 499.8 300.2 479.9 315.8 464.3L383.1 397C355.1 378.7 321.7 368.1 285.7 368.1L226.3 368.1zM332.3 530.9L320.4 590.5C320.2 591.4 320.1 592.4 320.1 593.4C320.1 601.4 326.6 608 334.7 608C335.7 608 336.6 607.9 337.6 607.7L397.2 595.8C409.6 593.3 421 587.2 429.9 578.3L548.8 459.4L468.8 379.4L349.9 498.3C341 507.2 334.9 518.6 332.4 531zM600.1 407.9C622.2 385.8 622.2 350 600.1 327.9C578 305.8 542.2 305.8 520.1 327.9L491.3 356.7L571.3 436.7L600.1 407.9z" />
+                                    </svg>
+                                </button>
+                                <button 
+                                    className="btn btn-square btn-ghost btn-sm"
+                                    onClick={() => handleStartEditTime(event)}
+                                    title="時間を編集"
                                 >
-                                    <path d="M384 64C366.3 64 352 78.3 352 96C352 113.7 366.3 128 384 128L466.7 128L265.3 329.4C252.8 341.9 252.8 362.2 265.3 374.7C277.8 387.2 298.1 387.2 310.6 374.7L512 173.3L512 256C512 273.7 526.3 288 544 288C561.7 288 576 273.7 576 256L576 96C576 78.3 561.7 64 544 64L384 64zM144 160C99.8 160 64 195.8 64 240L64 496C64 540.2 99.8 576 144 576L400 576C444.2 576 480 540.2 480 496L480 416C480 398.3 465.7 384 448 384C430.3 384 416 398.3 416 416L416 496C416 504.8 408.8 512 400 512L144 512C135.2 512 128 504.8 128 496L128 240C128 231.2 135.2 224 144 224L224 224C241.7 224 256 209.7 256 192C256 174.3 241.7 160 224 160L144 160z" />
-                                </svg>
-                            </button>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 640 640"
+                                        className="size-[1em]"
+                                    >
+                                        <path d="M128 0C141.3 0 152 10.7 152 24V64H296V24C296 10.7 306.7 0 320 0C333.3 0 344 10.7 344 24V64H488V24C488 10.7 498.7 0 512 0C525.3 0 536 10.7 536 24V64H576C611.3 64 640 92.7 640 128V576C640 611.3 611.3 640 576 640H64C28.7 640 0 611.3 0 576V128C0 92.7 28.7 64 64 64H104V24C104 10.7 114.7 0 128 0zM576 192H64V576H576V192zM176 256C176 242.7 186.7 232 200 232H280C293.3 232 304 242.7 304 256V336C304 349.3 293.3 360 280 360H200C186.7 360 176 349.3 176 336V256zM360 256C360 242.7 370.7 232 384 232H464C477.3 232 488 242.7 488 256V336C488 349.3 477.3 360 464 360H384C370.7 360 360 349.3 360 336V256zM176 400C176 386.7 186.7 376 200 376H280C293.3 376 304 386.7 304 400V480C304 493.3 293.3 504 280 504H200C186.7 504 176 493.3 176 480V400zM360 400C360 386.7 370.7 376 384 376H464C477.3 376 488 386.7 488 400V480C488 493.3 477.3 504 464 504H384C370.7 504 360 493.3 360 480V400z" />
+                                    </svg>
+                                </button>
+                            </div>
                         </li>
                     ))
                 )}

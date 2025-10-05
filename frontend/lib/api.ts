@@ -158,10 +158,25 @@ export const apiClient = {
     async createEvent(event: any) {
         return apiRequest(`${API_BASE_URL}/api/calendar/events`, { method: "POST", body: JSON.stringify(event) });
     },
+    async updateEvent(eventId: string, event: any) {
+        return apiRequest(`${API_BASE_URL}/api/calendar/events/${eventId}`, { method: "PUT", body: JSON.stringify(event) });
+    },
+    async toggleEventCompletion(eventId: string) {
+        return apiRequest(`${API_BASE_URL}/api/calendar/events/${eventId}/toggle`, { method: "PATCH" });
+    },
     async getTodos() {
         return apiRequest<{ todos: any[] }>(`${API_BASE_URL}/api/todos/`);
     },
     async createTodo(todo: any) {
         return apiRequest(`${API_BASE_URL}/api/todos/`, { method: "POST", body: JSON.stringify(todo) });
+    },
+    async updateTodo(todoId: string, todo: any) {
+        return apiRequest(`${API_BASE_URL}/api/todos/${todoId}`, { method: "PUT", body: JSON.stringify(todo) });
+    },
+    async toggleTodoCompletion(todoId: string) {
+        return apiRequest(`${API_BASE_URL}/api/todos/${todoId}/toggle`, { method: "PATCH" });
+    },
+    async deleteTodo(todoId: string) {
+        return apiRequest(`${API_BASE_URL}/api/todos/${todoId}`, { method: "DELETE" });
     },
 };
